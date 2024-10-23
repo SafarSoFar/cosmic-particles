@@ -1,8 +1,10 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/Addons.js';
+import { OrbitControls, UnrealBloomPass } from 'three/examples/jsm/Addons.js';
 import { clamp, normalize, randFloat, randInt } from 'three/src/math/MathUtils.js';
-import { AsciiEffect } from 'three/addons/effects/AsciiEffect.js';
 import {GUI} from 'lil-gui';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'; 
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'; 
+
 
 // function randomInt(min, max){
 //      return Math.floor(Math.random() * (max-min+1)+min);
@@ -11,8 +13,10 @@ import {GUI} from 'lil-gui';
 const scene = new THREE.Scene(); 
 
 const renderer = new THREE.WebGLRenderer(); 
-renderer.setClearColor(0x010328);
-// scene.add(new THREE.AmbientLight(0x010328));
+// renderer.setClearColor(0x010328);
+
+
+// scene.add(new THREE.AmbientLight(0xffffff));
 
 // renderer.setClearColor(0xffffff);
 renderer.setSize( window.innerWidth, window.innerHeight ); 
@@ -28,6 +32,16 @@ document.body.appendChild( renderer.domElement );
 // let directionalLight = new THREE.DirectionalLight(0xffffff, 100);
 // scene.add(directionalLight);
 
+const composer = new EffectComposer(renderer);
+
+const renderPass = new RenderPass( scene, camera ); 
+composer.addPass( renderPass ); 
+const glowPass = new UnrealBloomPass();
+composer.addPass( glowPass ); 
+// const glitchPass = new GlitchPass(); 
+// composer.addPass( glitchPass ); 
+// const outputPass = new OutputPass(); 
+// composer.addPass( outputPass );
 
 let settings = {
      dotsAmount: 400,
@@ -82,11 +96,14 @@ function changeDotsRadius(radius){
 
 class Dot{
      constructor(geometry){
-          // let dotMaterial =  new THREE.MeshPhongMaterial();
-          // dotMaterial.color = new THREE.Color(dotColors[randInt(0,1)]);
+          let dotMaterial =  new THREE.MeshPhongMaterial();
+          dotMaterial.color = new THREE.Color(dotColors[randInt(0,1)]);
+          dotMaterial.emissive = dotMaterial.color;
+          dotMaterial.emissiveIntensity = 5;
 
-          let dotMaterial =  new THREE.MeshBasicMaterial();
-          dotMaterial.color = dotColors[randInt(0,1)];
+          // let dotMaterial =  new THREE.MeshBasicMaterial();
+          // dotMaterial.color = dotColors[randInt(0,1)];
+
           this.mesh = new THREE.Mesh(geometry, dotMaterial);
 
           this.mesh.position.set(randInt(-window.innerWidth/4,window.innerWidth/4), randInt(-window.innerHeight/4,window.innerHeight/4), randInt(-window.innerWidth/4, window.innerWidth/4));
@@ -188,6 +205,9 @@ for(let i = 0; i < settings.dotsAmount; i++){
 
 camera.position.z = 300;
 
+let sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
+scene.add(sun);
+
 function animate() {
      for(let i = 0; i < settings.dotsAmount; i++){
           if(dots[i].mesh.position.distanceTo(mousePos) < settings.distanceAffection){
@@ -198,8 +218,10 @@ function animate() {
           dots[i].move();
           dots[i].friction();
      }   
-
-     renderer.render( scene, camera ); 
+     
+     // requestAnimationFrame(animate);
+     composer.render();
+     // renderer.render( scene, camera ); 
 
 
 } 
