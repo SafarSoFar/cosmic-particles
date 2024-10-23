@@ -10,9 +10,10 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 //      return Math.floor(Math.random() * (max-min+1)+min);
 // }
 
-const scene = new THREE.Scene(); 
 
+const scene = new THREE.Scene(); 
 const renderer = new THREE.WebGLRenderer(); 
+const raycaster = new THREE.Raycaster();
 // renderer.setClearColor(0x010328);
 
 
@@ -31,6 +32,9 @@ document.body.appendChild( renderer.domElement );
 
 // let directionalLight = new THREE.DirectionalLight(0xffffff, 100);
 // scene.add(directionalLight);
+
+
+
 
 const composer = new EffectComposer(renderer);
 
@@ -52,6 +56,7 @@ let settings = {
 }
 
 let mousePos = new THREE.Vector3(0,0,0);
+let pointer = new THREE.Vector2();
 
 let dots = [];
 
@@ -167,6 +172,18 @@ class Dot{
 
 }
 
+window.addEventListener("resize", onWindowResize,false);
+
+function onWindowResize() {
+
+     camera.aspect = window.innerWidth / window.innerHeight;
+     camera.updateProjectionMatrix();
+
+
+     renderer.setSize( window.innerWidth, window.innerHeight ); 
+     
+
+}
 
 
 document.addEventListener("keydown", onDocumentKeyDown, false);
@@ -178,9 +195,40 @@ function onDocumentKeyDown(event) {
     }
 };
 
+
+var isAudioLoaded = false;
+
+
+
+document.addEventListener("mousedown", onDocumentMouseDown, false);
+function onDocumentMouseDown(event){
+     event.preventDefault();
+     if(!isAudioLoaded){
+          const listener = new THREE.AudioListener(); 
+          const meditativeMusicFile = './assets/meditative.mp3';
+          camera.add( listener ); 
+          const audio = new THREE.Audio( listener ); 
+          const audioLoader = new THREE.AudioLoader(); 
+          audioLoader.load( meditativeMusicFile, function( buffer ) { 
+                    audio.setBuffer( buffer ); 
+                    audio.setVolume( 0.7 ); 
+                    audio.autoplay = true;
+                    audio.play();
+
+               }
+          );
+
+     }
+}
+
 document.addEventListener("mousemove", onDocumentMouseMove, false);
 function onDocumentMouseMove(event){
+     
      event.preventDefault();
+
+     pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+     pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
 	mousePos.x = (event.clientX / window.innerWidth) * 2 - 1;
 	mousePos.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
@@ -205,8 +253,12 @@ for(let i = 0; i < settings.dotsAmount; i++){
 
 camera.position.z = 300;
 
-let sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
+const sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
 scene.add(sun);
+
+
+let objectsToIntersect = [];
+objectsToIntersect.push(sun);
 
 function animate() {
      for(let i = 0; i < settings.dotsAmount; i++){
@@ -218,6 +270,13 @@ function animate() {
           dots[i].move();
           dots[i].friction();
      }   
+
+     raycaster.setFromCamera(pointer, camera);
+     const intersects = raycaster.intersectObjects(objectsToIntersect, false);
+     if(intersects.length > 0){
+          console.log("clicked on the sun");
+          camera.position.lerp(intersects[0].object.position, 0.07);
+     }
      
      // requestAnimationFrame(animate);
      composer.render();
