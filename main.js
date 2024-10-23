@@ -14,6 +14,10 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 const scene = new THREE.Scene(); 
 const renderer = new THREE.WebGLRenderer(); 
 const raycaster = new THREE.Raycaster();
+let audioListener;
+
+
+let clickedObject;
 // renderer.setClearColor(0x010328);
 
 
@@ -57,6 +61,7 @@ let settings = {
 
 let mousePos = new THREE.Vector3(0,0,0);
 let pointer = new THREE.Vector2();
+let isInspectingObject = false;
 
 let dots = [];
 
@@ -198,16 +203,27 @@ function onDocumentKeyDown(event) {
 
 var isAudioLoaded = false;
 
+function inspectClickedObject(){
+     if(camera.position.distanceTo(clickedObject.position) > 100){
+          camera.position.lerp(clickedObject.position, 0.07);
+     }
+     else{
+          isInspectingObject = false;
+     }
+
+}
 
 
 document.addEventListener("mousedown", onDocumentMouseDown, false);
 function onDocumentMouseDown(event){
      event.preventDefault();
+
+     // audio loading on user interaction, background music
      if(!isAudioLoaded){
-          const listener = new THREE.AudioListener(); 
+          audioListener = new THREE.AudioListener(); 
           const meditativeMusicFile = './assets/meditative.mp3';
-          camera.add( listener ); 
-          const audio = new THREE.Audio( listener ); 
+          camera.add( audioListener); 
+          const audio = new THREE.Audio( audioListener); 
           const audioLoader = new THREE.AudioLoader(); 
           audioLoader.load( meditativeMusicFile, function( buffer ) { 
                     audio.setBuffer( buffer ); 
@@ -217,8 +233,12 @@ function onDocumentMouseDown(event){
 
                }
           );
-
      }
+
+     if(clickedObject != null){
+          isInspectingObject = true;
+     }
+
 }
 
 document.addEventListener("mousemove", onDocumentMouseMove, false);
@@ -271,11 +291,18 @@ function animate() {
           dots[i].friction();
      }   
 
+     if(isInspectingObject && clickedObject){
+          inspectClickedObject();
+     }
+
      raycaster.setFromCamera(pointer, camera);
      const intersects = raycaster.intersectObjects(objectsToIntersect, false);
      if(intersects.length > 0){
-          console.log("clicked on the sun");
-          camera.position.lerp(intersects[0].object.position, 0.07);
+          clickedObject = intersects[0].object;
+          
+     }
+     else{
+          clickedObject = null;
      }
      
      // requestAnimationFrame(animate);
