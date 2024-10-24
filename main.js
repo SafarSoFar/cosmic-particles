@@ -20,11 +20,13 @@ let glassContainer;
 let titleText;
 let infoText;
 
-let clickedObject;
+var objectToInspect;
+var pointedObject;
 // renderer.setClearColor(0x010328);
 
 
-// scene.add(new THREE.AmbientLight(0xffffff));
+// Sun emmision ambientLight
+scene.add(new THREE.AmbientLight(0xfce570));
 
 // renderer.setClearColor(0xffffff);
 renderer.setSize( window.innerWidth, window.innerHeight ); 
@@ -32,6 +34,7 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 ); 
 
 const controls = new OrbitControls(camera, renderer.domElement );
+controls.autoRotateSpeed = 2;
 
 
 // by default no ascii effect
@@ -55,7 +58,7 @@ composer.addPass( glowPass );
 // composer.addPass( outputPass );
 
 let settings = {
-     dotsAmount: 400,
+     dotsAmount: 1000,
      dotTraversalRange: 100,
      dotsRadius: 0.3,
      distanceAffection: 100,
@@ -103,6 +106,14 @@ function changeDotsRadius(radius){
      for(let i = 0; i < settings.dotsAmount; i++){
           dots.push(new Dot(dotGeometry));
           scene.add(dots[i].mesh);
+     }
+}
+
+class Planet{
+     constructor(planetRadius, planetMaterial){
+          this.planetRadius = planetRadius;
+          this.planetGeometry = new THREE.SphereGeometry(planetRadius);
+          this.mesh = new THREE.Mesh(this.planetGeometry, planetMaterial);
      }
 }
 
@@ -206,15 +217,21 @@ function onDocumentKeyDown(event) {
 
 var isAudioLoaded = false;
 
-function toggleAutoRotation(){
-     controls.autoRotate = true;
-     controls.autoRotateSpeed = 2;
+function toggleAutoRotation(state){
+     controls.autoRotate = state;
 }
 
-function inspectClickedObject(){
-     let dist = camera.position.distanceTo(clickedObject.position);
+
+
+function inspectObject(){
+     controls.target.copy(objectToInspect.position);
+     camera.lookAt(objectToInspect.position);
+     let dist = camera.position.distanceTo(objectToInspect.position);
      if(dist > 100){
-          camera.position.lerp(clickedObject.position, 0.04);
+
+          // camera.position.copy(objectToInspect.position);
+
+          camera.position.lerp(objectToInspect.position, 0.04);
      }
 
      // let moveDir = new THREE.Vector3(
@@ -251,8 +268,9 @@ function onDocumentMouseDown(event){
           );
      }
 
-     if(clickedObject != null){
-          
+     if(pointedObject !== null){
+          objectToInspect = pointedObject;
+          isInspectingObject = true;
           // cleaning
           if(glassContainer){
                glassContainer.remove();
@@ -278,8 +296,11 @@ function onDocumentMouseDown(event){
 
           document.body.appendChild(glassContainer);
           
-          toggleAutoRotation();
-          isInspectingObject = true;
+          toggleAutoRotation(true);
+     }
+     else{
+          toggleAutoRotation(false);
+          isInspectingObject = false;
      }
 
 }
@@ -316,25 +337,34 @@ for(let i = 0; i < settings.dotsAmount; i++){
 
 camera.position.z = 300;
 
-const sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
-scene.add(sun);
 
-let ring1Geo = new THREE.TorusGeometry(70, 0.1, 128, 128);
-const mat = new THREE.LineBasicMaterial({color: 0xffffff});
-const ring1 =  new THREE.Mesh(ring1Geo, mat);
+const sun = new Planet(30, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
+// const sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
+scene.add(sun.mesh);
+
+const mercury = new Planet(5, new THREE.MeshPhongMaterial({color: 0xe0730d})) ;
+mercury.mesh.position.x = 55;
+scene.add(mercury.mesh);
+
+let ring1Geo = new THREE.TorusGeometry(55, 0.2, 128, 128);
+const ring = new THREE.LineBasicMaterial({color: 0xffffff});
+const ring1 =  new THREE.Mesh(ring1Geo, ring);
 ring1.rotateX(Math.PI / 2);
 scene.add(ring1);
-let ring2Geo = new THREE.TorusGeometry(100, 0.1, 128, 128);
-const ring2 =  new THREE.Mesh(ring2Geo, mat);
+let ring2Geo = new THREE.TorusGeometry(100, 0.2, 128, 128);
+const ring2 =  new THREE.Mesh(ring2Geo, ring);
 ring2.rotateX(Math.PI / 2);
 scene.add(ring2);
 
 
 
 let objectsToIntersect = [];
-objectsToIntersect.push(sun);
+objectsToIntersect.push(sun.mesh);
+objectsToIntersect.push(mercury.mesh);
 
 function animate() {
+
+     controls.update();
      // for(let i = 0; i < settings.dotsAmount; i++){
      //      if(dots[i].mesh.position.distanceTo(mousePos) < settings.distanceAffection){
      //           dots[i].setVelocity();
@@ -345,23 +375,22 @@ function animate() {
      //      dots[i].friction();
      // }   
 
-     if(isInspectingObject && clickedObject){
-          inspectClickedObject();
+     if(isInspectingObject && objectToInspect){
+          inspectObject();
      }
 
      raycaster.setFromCamera(pointer, camera);
      const intersects = raycaster.intersectObjects(objectsToIntersect, false);
      if(intersects.length > 0){
-          clickedObject = intersects[0].object;
+          pointedObject = intersects[0].object;
      }
      else{
-          clickedObject = null;
+          pointedObject = null;
      }
      // requestAnimationFrame(animate);
      composer.render();
      // renderer.render( scene, camera ); 
 
-     controls.update();
 
 } 
 
