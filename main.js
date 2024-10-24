@@ -32,7 +32,7 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 ); 
 
 const controls = new OrbitControls(camera, renderer.domElement );
-// controls.update();
+
 
 // by default no ascii effect
 document.body.appendChild( renderer.domElement );
@@ -206,13 +206,26 @@ function onDocumentKeyDown(event) {
 
 var isAudioLoaded = false;
 
+function toggleAutoRotation(){
+     controls.autoRotate = true;
+     controls.autoRotateSpeed = 2;
+}
+
 function inspectClickedObject(){
-     if(camera.position.distanceTo(clickedObject.position) > 100){
-          camera.position.lerp(clickedObject.position, 0.07);
+     let dist = camera.position.distanceTo(clickedObject.position);
+     if(dist > 100){
+          camera.position.lerp(clickedObject.position, 0.04);
      }
-     else{
-          isInspectingObject = false;
-     }
+
+     // let moveDir = new THREE.Vector3(
+     //      clickedObject.position.x - camera.position.x,
+     //      clickedObject.position.y - camera.position.y,
+     //      clickedObject.position.z - camera.position.z
+     // );
+     // moveDir.normalize();
+     // camera.translateOnAxis(moveDir, dist);
+     // camera.rotateY(0.1);
+     
 
 }
 
@@ -265,6 +278,7 @@ function onDocumentMouseDown(event){
 
           document.body.appendChild(glassContainer);
           
+          toggleAutoRotation();
           isInspectingObject = true;
      }
 
@@ -332,11 +346,11 @@ function animate() {
      else{
           clickedObject = null;
      }
-     
      // requestAnimationFrame(animate);
      composer.render();
      // renderer.render( scene, camera ); 
 
+     controls.update();
 
 } 
 
