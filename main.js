@@ -319,6 +319,17 @@ camera.position.z = 300;
 const sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
 scene.add(sun);
 
+let ring1Geo = new THREE.TorusGeometry(70, 0.1, 128, 128);
+const mat = new THREE.LineBasicMaterial({color: 0xffffff});
+const ring1 =  new THREE.Mesh(ring1Geo, mat);
+ring1.rotateX(Math.PI / 2);
+scene.add(ring1);
+let ring2Geo = new THREE.TorusGeometry(100, 0.1, 128, 128);
+const ring2 =  new THREE.Mesh(ring2Geo, mat);
+ring2.rotateX(Math.PI / 2);
+scene.add(ring2);
+
+
 
 let objectsToIntersect = [];
 objectsToIntersect.push(sun);
