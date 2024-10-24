@@ -16,6 +16,9 @@ const renderer = new THREE.WebGLRenderer();
 const raycaster = new THREE.Raycaster();
 let audioListener;
 
+let glassContainer;
+let titleText;
+let infoText;
 
 let clickedObject;
 // renderer.setClearColor(0x010328);
@@ -84,10 +87,10 @@ function changeDotsAmount(value){
 }
 
 
-const gui = new GUI();
-gui.add(settings, "distanceAffection", 50, 300, 10);
-gui.add(settings, "frictionRate", 0.003, 0.01);
-gui.add(settings, "dotsAmount", 100, 7000).onChange(value => changeDotsAmount(value));
+// const gui = new GUI();
+// gui.add(settings, "distanceAffection", 50, 300, 10);
+// gui.add(settings, "frictionRate", 0.003, 0.01);
+// gui.add(settings, "dotsAmount", 100, 7000).onChange(value => changeDotsAmount(value));
 
 
 function changeDotsRadius(radius){
@@ -236,6 +239,32 @@ function onDocumentMouseDown(event){
      }
 
      if(clickedObject != null){
+          
+          // cleaning
+          if(glassContainer){
+               glassContainer.remove();
+          }
+          if(titleText){
+               titleText.remove();
+          }
+          if(infoText){
+               infoText.remove();
+          }
+
+          
+          glassContainer = document.createElement('div');
+          glassContainer.className = "glass-container";
+
+          titleText = document.createElement('h1');
+          titleText.innerHTML = "Sun";
+          infoText = document.createElement('p');
+          infoText.innerHTML = "The Sun is the star at the center of the Solar System. It is a massive, nearly perfect sphere of hot plasma, heated to incandescence by nuclear fusion reactions in its core, radiating the energy from its surface mainly as visible light and infrared radiation with 10% at ultraviolet energies.";
+
+          glassContainer.appendChild(titleText);
+          glassContainer.appendChild(infoText);
+
+          document.body.appendChild(glassContainer);
+          
           isInspectingObject = true;
      }
 
@@ -281,15 +310,15 @@ let objectsToIntersect = [];
 objectsToIntersect.push(sun);
 
 function animate() {
-     for(let i = 0; i < settings.dotsAmount; i++){
-          if(dots[i].mesh.position.distanceTo(mousePos) < settings.distanceAffection){
-               dots[i].setVelocity();
-               // collis
-          }
+     // for(let i = 0; i < settings.dotsAmount; i++){
+     //      if(dots[i].mesh.position.distanceTo(mousePos) < settings.distanceAffection){
+     //           dots[i].setVelocity();
+     //           // collis
+     //      }
 
-          dots[i].move();
-          dots[i].friction();
-     }   
+     //      dots[i].move();
+     //      dots[i].friction();
+     // }   
 
      if(isInspectingObject && clickedObject){
           inspectClickedObject();
@@ -299,7 +328,6 @@ function animate() {
      const intersects = raycaster.intersectObjects(objectsToIntersect, false);
      if(intersects.length > 0){
           clickedObject = intersects[0].object;
-          
      }
      else{
           clickedObject = null;
