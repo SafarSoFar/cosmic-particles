@@ -10,11 +10,13 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 //      return Math.floor(Math.random() * (max-min+1)+min);
 // }
 
+let inspectionDistanceOffset = 15;
 
 const scene = new THREE.Scene(); 
 const renderer = new THREE.WebGLRenderer(); 
 const raycaster = new THREE.Raycaster();
 let audioListener = new THREE.AudioListener();
+var isAudioLoaded = false;
 let audioLoader = new THREE.AudioLoader();
 let whooshAudio = new THREE.Audio(audioListener);
 audioLoader.load("./assets/whoosh.mp3", function(buffer){
@@ -25,6 +27,7 @@ audioLoader.load("./assets/whoosh.mp3", function(buffer){
 let glassContainer;
 let nameText;
 let descriptionText;
+var sunPivot, mercuryPivot, venusPivot;
 
 var cosmicObjectToInspect;
 var pointedCosmicObject;
@@ -116,10 +119,11 @@ function changeDotsRadius(radius){
 }
 
 class CosmicObject{
-     constructor(planetRadius, planetMaterial, infoName, infoDescription){
-          this.planetRadius = planetRadius;
-          this.planetGeometry = new THREE.SphereGeometry(planetRadius);
-          this.mesh = new THREE.Mesh(this.planetGeometry, planetMaterial);
+     constructor(objectPivot, objectRadius, objectMaterial, infoName, infoDescription){
+          this.objectPivot = objectPivot;
+          this.objectRadius = objectRadius;
+          this.objectGeometry = new THREE.SphereGeometry(objectRadius);
+          this.mesh = new THREE.Mesh(this.objectGeometry, objectMaterial);
           this.infoName = infoName;
           this.infoDescription = infoDescription;
      }
@@ -154,7 +158,6 @@ class Dot{
      move(){
           this.mesh.position.x += this.velocityX;
           this.mesh.position.y += this.velocityY; 
-          // this.mesh.position.lerp(mousePos, 0.01);
      }
      friction(){
           if(this.velocityX > 0.0){
@@ -223,7 +226,6 @@ function onDocumentKeyDown(event) {
 };
 
 
-var isAudioLoaded = false;
 
 function toggleAutoRotation(state){
      controls.autoRotate = state;
@@ -232,14 +234,20 @@ function toggleAutoRotation(state){
 
 
 function moveCameraToTarget(){
+     // Getting object's global position and following it every function call. 
+     // Required setting orbit control target every call because the object is always moving.  
+     let targetGlobalPos = new THREE.Vector3();
+     cosmicObjectToInspect.mesh.getWorldPosition(targetGlobalPos);
+     controls.target.copy(targetGlobalPos);
+     camera.lookAt(targetGlobalPos);
+     let dist = camera.position.distanceTo(targetGlobalPos);
      
-     let dist = camera.position.distanceTo(cosmicObjectToInspect.mesh.position);
-     if(dist > 100){
-          camera.position.lerp(cosmicObjectToInspect.mesh.position, 0.04);
+     if(dist > cosmicObjectToInspect.objectRadius+inspectionDistanceOffset){
+          camera.position.lerp(targetGlobalPos, 0.04);
      }
-     else{
-          shouldMoveCameraToTarget = false;
-     }
+     // else{
+     //      shouldMoveCameraToTarget = false;
+     // }
 
      
      
@@ -254,15 +262,16 @@ function onDocumentMouseDown(event){
      // audio loading on user interaction, background music
      if(!isAudioLoaded){
           camera.add( audioListener); 
-          const audio = new THREE.Audio( audioListener); 
+          const musicAudio = new THREE.Audio( audioListener); 
           audioLoader.load( './assets/meditative.mp3', function( buffer ) { 
-                    audio.setBuffer( buffer ); 
-                    audio.setVolume( 0.7 ); 
-                    audio.autoplay = true;
-                    audio.play();
+                    musicAudio.setBuffer( buffer ); 
+                    musicAudio.setVolume( 0.7 ); 
+                    musicAudio.autoplay = true;
+                    musicAudio.play();
 
                }
           );
+          isAudioLoaded = true;
      }
 
      if(pointedCosmicObject !== null){
@@ -270,8 +279,7 @@ function onDocumentMouseDown(event){
           
           cosmicObjectToInspect = pointedCosmicObject;
 
-          controls.target.copy(cosmicObjectToInspect.mesh.position);
-          camera.lookAt(cosmicObjectToInspect.mesh.position);
+          
 
           shouldMoveCameraToTarget = true;
           // cleaning
@@ -302,8 +310,10 @@ function onDocumentMouseDown(event){
           toggleAutoRotation(true);
      }
      else{
-          toggleAutoRotation(false);
-          shouldMoveCameraToTarget = false;
+          if(cosmicObjectToInspect){
+               toggleAutoRotation(false);
+               shouldMoveCameraToTarget = false;
+          } 
      }
 
 }
@@ -341,20 +351,26 @@ for(let i = 0; i < settings.dotsAmount; i++){
 camera.position.z = 300;
 
 
-const sun = new CosmicObject(30, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}), "Sun", 
+sunPivot = new THREE.Group();
+const sun = new CosmicObject(sunPivot,30, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}), "Sun", 
 "The Sun is the star at the center of the Solar System. It is a massive, nearly perfect sphere of hot plasma, heated to incandescence by nuclear fusion reactions in its core, radiating the energy from its surface mainly as visible light and infrared radiation with 10% at ultraviolet energies");
 // const sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
-scene.add(sun.mesh);
+sunPivot.add(sun.mesh);
+scene.add(sunPivot);
 
-const mercury = new CosmicObject(2, new THREE.MeshBasicMaterial({color: 0x333333}), "Mercury",
+mercuryPivot = new THREE.Group();
+const mercury = new CosmicObject(mercuryPivot,2, new THREE.MeshBasicMaterial({color: 0x333333}), "Mercury",
 "Mercury is the first planet from the Sun and the smallest in the Solar System. In English, it is named after the ancient Roman god Mercurius (Mercury), god of commerce and communication, and the messenger of the gods. Mercury is classified as a terrestrial planet, with roughly the same surface gravity as Mars. The surface of Mercury is heavily cratered, as a result of countless impact events that have accumulated over billions of years.") ;
 mercury.mesh.position.x = 55;
-scene.add(mercury.mesh);
+mercuryPivot.add(mercury.mesh);
+scene.add(mercuryPivot);
 
-const venus = new CosmicObject(5, new THREE.MeshPhongMaterial({color: 0xe0730d}), "Venus",
+venusPivot = new THREE.Group();
+const venus = new CosmicObject(venusPivot,5, new THREE.MeshPhongMaterial({color: 0xe0730d}), "Venus",
 "Venus is the second planet from the Sun. It is a terrestrial planet and is the closest in mass and size to its orbital neighbour Earth. Venus has by far the densest atmosphere of the terrestrial planets, composed mostly of carbon dioxide with a thick, global sulfuric acid cloud cover.") ;
 venus.mesh.position.x = 70;
-scene.add(venus.mesh);
+venusPivot.add(venus.mesh);
+scene.add(venusPivot);
 
 let ring1Geo = new THREE.TorusGeometry(55, 0.2, 128, 128);
 const ring = new THREE.LineBasicMaterial({color: 0xffffff});
@@ -380,6 +396,7 @@ meshToCosmicObjectDictionary[venus.mesh.id] = venus;
 
 
 function animate() {
+     
 
      controls.update();
      // for(let i = 0; i < settings.dotsAmount; i++){
@@ -392,9 +409,16 @@ function animate() {
      //      dots[i].friction();
      // }   
 
+     mercuryPivot.rotation.y += 0.001;
+     venusPivot.rotation.y += 0.0005;
+
+     
+
      if(shouldMoveCameraToTarget && cosmicObjectToInspect){
           moveCameraToTarget();
+          
      }
+
 
      raycaster.setFromCamera(pointer, camera);
      const intersects = raycaster.intersectObjects(objectsToIntersect, false);
