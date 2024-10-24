@@ -14,7 +14,13 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 const scene = new THREE.Scene(); 
 const renderer = new THREE.WebGLRenderer(); 
 const raycaster = new THREE.Raycaster();
-let audioListener;
+let audioListener = new THREE.AudioListener();
+let audioLoader = new THREE.AudioLoader();
+let whooshAudio = new THREE.Audio(audioListener);
+audioLoader.load("./assets/whoosh.mp3", function(buffer){
+     whooshAudio.setBuffer(buffer);
+});
+
 
 let glassContainer;
 let titleText;
@@ -67,7 +73,7 @@ let settings = {
 
 let mousePos = new THREE.Vector3(0,0,0);
 let pointer = new THREE.Vector2();
-let isInspectingObject = false;
+let shouldMoveCameraToTarget = false;
 
 let dots = [];
 
@@ -109,7 +115,7 @@ function changeDotsRadius(radius){
      }
 }
 
-class Planet{
+class CosmicObject{
      constructor(planetRadius, planetMaterial){
           this.planetRadius = planetRadius;
           this.planetGeometry = new THREE.SphereGeometry(planetRadius);
@@ -223,25 +229,17 @@ function toggleAutoRotation(state){
 
 
 
-function inspectObject(){
-     controls.target.copy(objectToInspect.position);
-     camera.lookAt(objectToInspect.position);
+function moveCameraToTarget(){
+     
      let dist = camera.position.distanceTo(objectToInspect.position);
      if(dist > 100){
-
-          // camera.position.copy(objectToInspect.position);
-
           camera.position.lerp(objectToInspect.position, 0.04);
      }
+     else{
+          shouldMoveCameraToTarget = false;
+     }
 
-     // let moveDir = new THREE.Vector3(
-     //      clickedObject.position.x - camera.position.x,
-     //      clickedObject.position.y - camera.position.y,
-     //      clickedObject.position.z - camera.position.z
-     // );
-     // moveDir.normalize();
-     // camera.translateOnAxis(moveDir, dist);
-     // camera.rotateY(0.1);
+     
      
 
 }
@@ -253,12 +251,9 @@ function onDocumentMouseDown(event){
 
      // audio loading on user interaction, background music
      if(!isAudioLoaded){
-          audioListener = new THREE.AudioListener(); 
-          const meditativeMusicFile = './assets/meditative.mp3';
           camera.add( audioListener); 
           const audio = new THREE.Audio( audioListener); 
-          const audioLoader = new THREE.AudioLoader(); 
-          audioLoader.load( meditativeMusicFile, function( buffer ) { 
+          audioLoader.load( './assets/meditative.mp3', function( buffer ) { 
                     audio.setBuffer( buffer ); 
                     audio.setVolume( 0.7 ); 
                     audio.autoplay = true;
@@ -269,8 +264,14 @@ function onDocumentMouseDown(event){
      }
 
      if(pointedObject !== null){
+          whooshAudio.play();
+          
           objectToInspect = pointedObject;
-          isInspectingObject = true;
+
+          controls.target.copy(objectToInspect.position);
+          camera.lookAt(objectToInspect.position);
+
+          shouldMoveCameraToTarget = true;
           // cleaning
           if(glassContainer){
                glassContainer.remove();
@@ -300,7 +301,7 @@ function onDocumentMouseDown(event){
      }
      else{
           toggleAutoRotation(false);
-          isInspectingObject = false;
+          shouldMoveCameraToTarget = false;
      }
 
 }
@@ -338,11 +339,11 @@ for(let i = 0; i < settings.dotsAmount; i++){
 camera.position.z = 300;
 
 
-const sun = new Planet(30, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
+const sun = new CosmicObject(30, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
 // const sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
 scene.add(sun.mesh);
 
-const mercury = new Planet(5, new THREE.MeshPhongMaterial({color: 0xe0730d})) ;
+const mercury = new CosmicObject(5, new THREE.MeshPhongMaterial({color: 0xe0730d})) ;
 mercury.mesh.position.x = 55;
 scene.add(mercury.mesh);
 
@@ -375,8 +376,8 @@ function animate() {
      //      dots[i].friction();
      // }   
 
-     if(isInspectingObject && objectToInspect){
-          inspectObject();
+     if(shouldMoveCameraToTarget && objectToInspect){
+          moveCameraToTarget();
      }
 
      raycaster.setFromCamera(pointer, camera);
