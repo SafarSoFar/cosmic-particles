@@ -23,11 +23,11 @@ audioLoader.load("./assets/whoosh.mp3", function(buffer){
 
 
 let glassContainer;
-let titleText;
-let infoText;
+let nameText;
+let descriptionText;
 
-var objectToInspect;
-var pointedObject;
+var cosmicObjectToInspect;
+var pointedCosmicObject;
 // renderer.setClearColor(0x010328);
 
 
@@ -116,10 +116,12 @@ function changeDotsRadius(radius){
 }
 
 class CosmicObject{
-     constructor(planetRadius, planetMaterial){
+     constructor(planetRadius, planetMaterial, infoName, infoDescription){
           this.planetRadius = planetRadius;
           this.planetGeometry = new THREE.SphereGeometry(planetRadius);
           this.mesh = new THREE.Mesh(this.planetGeometry, planetMaterial);
+          this.infoName = infoName;
+          this.infoDescription = infoDescription;
      }
 }
 
@@ -231,9 +233,9 @@ function toggleAutoRotation(state){
 
 function moveCameraToTarget(){
      
-     let dist = camera.position.distanceTo(objectToInspect.position);
+     let dist = camera.position.distanceTo(cosmicObjectToInspect.mesh.position);
      if(dist > 100){
-          camera.position.lerp(objectToInspect.position, 0.04);
+          camera.position.lerp(cosmicObjectToInspect.mesh.position, 0.04);
      }
      else{
           shouldMoveCameraToTarget = false;
@@ -263,37 +265,37 @@ function onDocumentMouseDown(event){
           );
      }
 
-     if(pointedObject !== null){
+     if(pointedCosmicObject !== null){
           whooshAudio.play();
           
-          objectToInspect = pointedObject;
+          cosmicObjectToInspect = pointedCosmicObject;
 
-          controls.target.copy(objectToInspect.position);
-          camera.lookAt(objectToInspect.position);
+          controls.target.copy(cosmicObjectToInspect.mesh.position);
+          camera.lookAt(cosmicObjectToInspect.mesh.position);
 
           shouldMoveCameraToTarget = true;
           // cleaning
           if(glassContainer){
                glassContainer.remove();
           }
-          if(titleText){
-               titleText.remove();
+          if(nameText){
+               nameText.remove();
           }
-          if(infoText){
-               infoText.remove();
+          if(descriptionText){
+               descriptionText.remove();
           }
 
           
           glassContainer = document.createElement('div');
           glassContainer.className = "glass-container";
 
-          titleText = document.createElement('h1');
-          titleText.innerHTML = "Sun";
-          infoText = document.createElement('p');
-          infoText.innerHTML = "The Sun is the star at the center of the Solar System. It is a massive, nearly perfect sphere of hot plasma, heated to incandescence by nuclear fusion reactions in its core, radiating the energy from its surface mainly as visible light and infrared radiation with 10% at ultraviolet energies.";
+          nameText = document.createElement('h1');
+          nameText.innerHTML = cosmicObjectToInspect.infoName;
+          descriptionText = document.createElement('p');
+          descriptionText.innerHTML = cosmicObjectToInspect.infoDescription;
 
-          glassContainer.appendChild(titleText);
-          glassContainer.appendChild(infoText);
+          glassContainer.appendChild(nameText);
+          glassContainer.appendChild(descriptionText);
 
           document.body.appendChild(glassContainer);
           
@@ -339,20 +341,27 @@ for(let i = 0; i < settings.dotsAmount; i++){
 camera.position.z = 300;
 
 
-const sun = new CosmicObject(30, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
+const sun = new CosmicObject(30, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}), "Sun", 
+"The Sun is the star at the center of the Solar System. It is a massive, nearly perfect sphere of hot plasma, heated to incandescence by nuclear fusion reactions in its core, radiating the energy from its surface mainly as visible light and infrared radiation with 10% at ultraviolet energies");
 // const sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
 scene.add(sun.mesh);
 
-const mercury = new CosmicObject(5, new THREE.MeshPhongMaterial({color: 0xe0730d})) ;
+const mercury = new CosmicObject(2, new THREE.MeshBasicMaterial({color: 0x333333}), "Mercury",
+"Mercury is the first planet from the Sun and the smallest in the Solar System. In English, it is named after the ancient Roman god Mercurius (Mercury), god of commerce and communication, and the messenger of the gods. Mercury is classified as a terrestrial planet, with roughly the same surface gravity as Mars. The surface of Mercury is heavily cratered, as a result of countless impact events that have accumulated over billions of years.") ;
 mercury.mesh.position.x = 55;
 scene.add(mercury.mesh);
+
+const venus = new CosmicObject(5, new THREE.MeshPhongMaterial({color: 0xe0730d}), "Venus",
+"Venus is the second planet from the Sun. It is a terrestrial planet and is the closest in mass and size to its orbital neighbour Earth. Venus has by far the densest atmosphere of the terrestrial planets, composed mostly of carbon dioxide with a thick, global sulfuric acid cloud cover.") ;
+venus.mesh.position.x = 70;
+scene.add(venus.mesh);
 
 let ring1Geo = new THREE.TorusGeometry(55, 0.2, 128, 128);
 const ring = new THREE.LineBasicMaterial({color: 0xffffff});
 const ring1 =  new THREE.Mesh(ring1Geo, ring);
 ring1.rotateX(Math.PI / 2);
 scene.add(ring1);
-let ring2Geo = new THREE.TorusGeometry(100, 0.2, 128, 128);
+let ring2Geo = new THREE.TorusGeometry(70, 0.2, 128, 128);
 const ring2 =  new THREE.Mesh(ring2Geo, ring);
 ring2.rotateX(Math.PI / 2);
 scene.add(ring2);
@@ -362,6 +371,13 @@ scene.add(ring2);
 let objectsToIntersect = [];
 objectsToIntersect.push(sun.mesh);
 objectsToIntersect.push(mercury.mesh);
+objectsToIntersect.push(venus.mesh);
+
+const meshToCosmicObjectDictionary = {};
+meshToCosmicObjectDictionary[sun.mesh.id] = sun;
+meshToCosmicObjectDictionary[mercury.mesh.id] = mercury;
+meshToCosmicObjectDictionary[venus.mesh.id] = venus;
+
 
 function animate() {
 
@@ -376,17 +392,17 @@ function animate() {
      //      dots[i].friction();
      // }   
 
-     if(shouldMoveCameraToTarget && objectToInspect){
+     if(shouldMoveCameraToTarget && cosmicObjectToInspect){
           moveCameraToTarget();
      }
 
      raycaster.setFromCamera(pointer, camera);
      const intersects = raycaster.intersectObjects(objectsToIntersect, false);
      if(intersects.length > 0){
-          pointedObject = intersects[0].object;
+          pointedCosmicObject = meshToCosmicObjectDictionary[intersects[0].object.id];
      }
      else{
-          pointedObject = null;
+          pointedCosmicObject = null;
      }
      // requestAnimationFrame(animate);
      composer.render();
