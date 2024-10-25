@@ -25,12 +25,17 @@ audioLoader.load("./assets/whoosh.mp3", function(buffer){
 });
 
 const textureLoader = new THREE.TextureLoader();
-const earthTexture = textureLoader.load('./assets/earth-texture.jpg');
+
+const earthTexture = textureLoader.load('./assets/earth-texture-2k.jpg');
 earthTexture.colorSpace = THREE.SRGBColorSpace;
+const earthHeightMapTexture = textureLoader.load('./assets/earth-height-map-2k.jpg');
+
 const mercuryTexture = textureLoader.load('./assets/mercury-texture.jpg');
 mercuryTexture.colorSpace = THREE.SRGBColorSpace;
+
 const venusTexture = textureLoader.load('./assets/venus-texture.jpg');
 venusTexture.colorSpace = THREE.SRGBColorSpace;
+
 
 
 
@@ -211,14 +216,14 @@ venusPivot.add(venus.mesh);
 scene.add(venusPivot);
 
 earthPivot = new THREE.Group();
-const earth = new CosmicObject(earthPivot, 4,new THREE.MeshPhongMaterial({color:0xffffff, map: earthTexture}), "Earth",
+const earth = new CosmicObject(earthPivot, 4,new THREE.MeshPhongMaterial({color:0xffffff, map: earthTexture, displacementMap: earthHeightMapTexture, displacementScale: 0.1}), "Earth",
 "Earth");
 earth.mesh.position.x = 80;
 earthPivot.add(earth.mesh);
 scene.add(earthPivot);
 
 let ring1Geo = new THREE.TorusGeometry(55, 0.2, 128, 128);
-const ring = new THREE.LineBasicMaterial({color: 0xffffff});
+const ring = new THREE.LineBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.01});
 const ring1 =  new THREE.Mesh(ring1Geo, ring);
 ring1.rotateX(Math.PI / 2);
 scene.add(ring1);
@@ -297,7 +302,7 @@ function simulateCosmicMovement(){
      mercury.mesh.rotation.x -= 0.0006;
 
 
-     venusPivot.rotation.y += 0.0005;
+     venusPivot.rotation.y += 0.0015;
      venus.mesh.rotation.y -= 0.005;
      venus.mesh.rotation.x -= 0.0006;
 
@@ -305,6 +310,27 @@ function simulateCosmicMovement(){
      earthPivot.rotation.y += 0.0010;
      earth.mesh.rotation.y -= 0.005;
      earth.mesh.rotation.x -= 0.0006;
+}
+
+
+
+function resetPlayerFollowing(){
+     toggleAutoRotation(false);
+     cosmicObjectToInspect = null;
+     shouldMoveCameraToTarget = false;
+     removeCosmicObjectInfo();
+}
+
+function removeCosmicObjectInfo(){
+     if(glassContainer){
+          glassContainer.remove();
+     }
+     if(nameText){
+          nameText.remove();
+     }
+     if(descriptionText){
+          descriptionText.remove();
+     }
 }
 
 function setupUserInputEvents(){
@@ -356,20 +382,11 @@ function setupUserInputEvents(){
                
                cosmicObjectToInspect = pointedCosmicObject;
 
-               
 
                shouldMoveCameraToTarget = true;
-               // cleaning
-               if(glassContainer){
-                    glassContainer.remove();
-               }
-               if(nameText){
-                    nameText.remove();
-               }
-               if(descriptionText){
-                    descriptionText.remove();
-               }
 
+               // cleaning from previous info
+               removeCosmicObjectInfo(); 
                
                glassContainer = document.createElement('div');
                glassContainer.className = "glass-container";
@@ -388,9 +405,8 @@ function setupUserInputEvents(){
           }
           else{
                if(cosmicObjectToInspect){
-                    // resetting inspection logic
-                    toggleAutoRotation(false);
-                    shouldMoveCameraToTarget = false;
+                    resetPlayerFollowing();
+                    
                } 
           }
 

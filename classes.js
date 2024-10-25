@@ -8,7 +8,7 @@ export class CosmicObject{
      constructor(objectPivot, objectRadius, objectMaterial, infoName, infoDescription){
           this.objectPivot = objectPivot;
           this.objectRadius = objectRadius;
-          this.objectGeometry = new THREE.SphereGeometry(objectRadius);
+          this.objectGeometry = new THREE.SphereGeometry(objectRadius, 128, 128);
           this.mesh = new THREE.Mesh(this.objectGeometry, objectMaterial);
           this.infoName = infoName;
           this.infoDescription = infoDescription;
