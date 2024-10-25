@@ -244,26 +244,34 @@ function toggleAutoRotation(state){
 
 
 
-function moveCameraToTarget(){
+function followTargetObject(){
+
      // Getting object's global position and following it every function call. 
      // Required setting orbit control target every call because the object is always moving.  
+
      let targetGlobalPos = new THREE.Vector3();
      cosmicObjectToInspect.mesh.getWorldPosition(targetGlobalPos);
      controls.target.copy(targetGlobalPos);
      camera.lookAt(targetGlobalPos);
+
      let dist = camera.position.distanceTo(targetGlobalPos);
-     
-     if(dist > cosmicObjectToInspect.objectRadius+inspectionDistanceOffset){
-          camera.position.lerp(targetGlobalPos, 0.09);
-     }
-     else{
-          shouldMoveCameraToTarget = false;
+    
+     if(shouldMoveCameraToTarget){
+          if(dist > cosmicObjectToInspect.objectRadius+inspectionDistanceOffset){
+               camera.position.lerp(targetGlobalPos, 0.09);
+          }
+          else{
+               // cosmicObjectToInspect.mesh.add(camera);
+               shouldMoveCameraToTarget = false;
+          }
      }
 
      
      
 
 }
+
+
 
 
 document.addEventListener("mousedown", onDocumentMouseDown, false);
@@ -322,6 +330,7 @@ function onDocumentMouseDown(event){
      }
      else{
           if(cosmicObjectToInspect){
+               // resetting inspection logic
                toggleAutoRotation(false);
                shouldMoveCameraToTarget = false;
           } 
@@ -435,14 +444,12 @@ function animate() {
      //      dots[i].friction();
      // }   
 
-     mercuryPivot.rotation.y += 0.001;
-     venusPivot.rotation.y += 0.0005;
-     earthPivot.rotation.y += 0.0010;
+    simulateCosmicMovement();
 
      
 
-     if(shouldMoveCameraToTarget && cosmicObjectToInspect){
-          moveCameraToTarget();
+     if(cosmicObjectToInspect){
+          followTargetObject();
           
      }
 
@@ -463,3 +470,21 @@ function animate() {
 } 
 
 renderer.setAnimationLoop( animate );
+
+function simulateCosmicMovement(){
+
+     mercuryPivot.rotation.y += 0.002;
+     mercury.mesh.rotation.y -= 0.005;
+     mercury.mesh.rotation.x -= 0.0006;
+
+
+     venusPivot.rotation.y += 0.0005;
+     venus.mesh.rotation.y -= 0.005;
+     venus.mesh.rotation.x -= 0.0006;
+
+
+     
+     earthPivot.rotation.y += 0.0010;
+     earth.mesh.rotation.y -= 0.005;
+     earth.mesh.rotation.x -= 0.0006;
+}
