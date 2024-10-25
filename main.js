@@ -19,6 +19,14 @@ const raycaster = new THREE.Raycaster();
 let audioListener = new THREE.AudioListener();
 var isAudioLoaded = false;
 let audioLoader = new THREE.AudioLoader();
+let backgroundAudio = new THREE.Audio(audioListener);
+
+audioLoader.load("./assets/meditative.mp3", function(buffer){
+     backgroundAudio.setBuffer(buffer);
+     backgroundAudio.setVolume(0.7);
+     backgroundAudio.autoplay = true;
+});
+
 let whooshAudio = new THREE.Audio(audioListener);
 audioLoader.load("./assets/whoosh.mp3", function(buffer){
      whooshAudio.setBuffer(buffer);
@@ -42,7 +50,7 @@ venusTexture.colorSpace = THREE.SRGBColorSpace;
 let glassContainer;
 let nameText;
 let descriptionText;
-var sunPivot, mercuryPivot, venusPivot, earthPivot;
+var sunPivot, mercuryPivot, venusPivot, earthPivot, marsPivot, asteroidBeltPivot;
 
 var cosmicObjectToInspect;
 var pointedCosmicObject;
@@ -217,24 +225,53 @@ scene.add(venusPivot);
 
 earthPivot = new THREE.Group();
 const earth = new CosmicObject(earthPivot, 4,new THREE.MeshPhongMaterial({color:0xffffff, map: earthTexture, displacementMap: earthHeightMapTexture, displacementScale: 0.1}), "Earth",
-"Earth");
+"Earth is the third planet from the Sun and the only astronomical object known to harbor life. This is enabled by Earth being an ocean world, the only one in the Solar System sustaining liquid surface water. Almost all of Earth's water is contained in its global ocean, covering 70.8% of Earth's crust. The remaining 29.2% of Earth's crust is land, most of which is located in the form of continental landmasses within Earth's land hemisphere.");
 earth.mesh.position.x = 80;
 earthPivot.add(earth.mesh);
 scene.add(earthPivot);
 
-let ring1Geo = new THREE.TorusGeometry(55, 0.2, 128, 128);
-const ring = new THREE.LineBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.01});
-const ring1 =  new THREE.Mesh(ring1Geo, ring);
-ring1.rotateX(Math.PI / 2);
-scene.add(ring1);
-let ring2Geo = new THREE.TorusGeometry(70, 0.2, 128, 128);
-const ring2 =  new THREE.Mesh(ring2Geo, ring);
-ring2.rotateX(Math.PI / 2);
-scene.add(ring2);
-let ring3Geo = new THREE.TorusGeometry(80, 0.2, 128, 128);
-const ring3 =  new THREE.Mesh(ring3Geo, ring);
-ring3.rotateX(Math.PI / 2);
-scene.add(ring3);
+asteroidBeltPivot = new THREE.Group();
+for(let i = 0; i < 1000; i++){
+     let widthSegments = randInt(3,6);
+     let heightSegments = randInt(3,6);
+     let asteroid = new THREE.Mesh(new THREE.SphereGeometry(0.5,widthSegments, heightSegments), new THREE.MeshPhongMaterial({color: 0xffffff}));
+     // Degrees 2 Radians
+     let angle = randFloat(0,360) * (Math.PI / 180); 
+     asteroid.position.x = 105 * Math.cos(angle);
+     asteroid.position.y = randFloat(-1,1);
+     asteroid.position.z = 105 * Math.sin(angle);
+     asteroidBeltPivot.add(asteroid);
+}
+scene.add(asteroidBeltPivot);
+
+
+// Ring creation is not automated because radiuses of the rings are individual
+const ringMat = new THREE.LineBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.01});
+
+let mercuryRingGeo = new THREE.TorusGeometry(55, 0.2, 128, 128);
+const mercuryRing =  new THREE.Mesh(mercuryRingGeo, ringMat);
+mercuryRing.rotateX(Math.PI / 2);
+scene.add(mercuryRing);
+
+let venusRingGeo = new THREE.TorusGeometry(70, 0.2, 128, 128);
+const venusRing =  new THREE.Mesh(venusRingGeo, ringMat);
+venusRing.rotateX(Math.PI / 2);
+scene.add(venusRing);
+
+let earthRingGeo = new THREE.TorusGeometry(80, 0.2, 128, 128);
+const earthRing =  new THREE.Mesh(earthRingGeo, ringMat);
+earthRing.rotateX(Math.PI / 2);
+scene.add(earthRing);
+
+let marsRingGeo = new THREE.TorusGeometry(90, 0.2, 128, 128);
+const marsRing =  new THREE.Mesh(marsRingGeo, ringMat);
+marsRing.rotateX(Math.PI / 2);
+scene.add(marsRing);
+
+let asteroidBeltRingGeo = new THREE.TorusGeometry(105, 0.2, 128, 128);
+const asteroidBeltRing =  new THREE.Mesh(asteroidBeltRingGeo, ringMat);
+asteroidBeltRing.rotateX(Math.PI / 2);
+scene.add(asteroidBeltRing);
 
 
 
@@ -297,6 +334,7 @@ renderer.setAnimationLoop( animate );
 
 function simulateCosmicMovement(){
 
+     asteroidBeltPivot.rotation.y += 0.00010;
      mercuryPivot.rotation.y += 0.002;
      mercury.mesh.rotation.y -= 0.005;
      mercury.mesh.rotation.x -= 0.0006;
@@ -365,15 +403,8 @@ function setupUserInputEvents(){
           // audio loading on user interaction, background music
           if(!isAudioLoaded){
                camera.add( audioListener); 
-               const musicAudio = new THREE.Audio( audioListener); 
-               audioLoader.load( './assets/meditative.mp3', function( buffer ) { 
-                         musicAudio.setBuffer( buffer ); 
-                         musicAudio.setVolume( 0.7 ); 
-                         musicAudio.autoplay = true;
-                         musicAudio.play();
-
-                    }
-               );
+               backgroundAudio.play();
+               
                isAudioLoaded = true;
           }
 
