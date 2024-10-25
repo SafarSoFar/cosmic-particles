@@ -4,6 +4,7 @@ import { clamp, normalize, randFloat, randInt } from 'three/src/math/MathUtils.j
 import {GUI} from 'lil-gui';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'; 
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'; 
+import {Dot, CosmicObject } from './classes.js';
 
 
 // function randomInt(min, max){
@@ -92,9 +93,7 @@ let shouldMoveCameraToTarget = false;
 let dots = [];
 
 let dotGeometry = new THREE.SphereGeometry(settings.dotsRadius); 
-let dotColors = [];
-dotColors.push(new THREE.Color(0xf9c54b));
-dotColors.push(new THREE.Color(0xa891fb));
+
 // let dotMaterial = new THREE.MeshBasicMaterial( { color: 0xffffff } ); 
 
 function changeDotsAmount(value){
@@ -129,112 +128,12 @@ function changeDotsRadius(radius){
      }
 }
 
-class CosmicObject{
-     constructor(objectPivot, objectRadius, objectMaterial, infoName, infoDescription){
-          this.objectPivot = objectPivot;
-          this.objectRadius = objectRadius;
-          this.objectGeometry = new THREE.SphereGeometry(objectRadius);
-          this.mesh = new THREE.Mesh(this.objectGeometry, objectMaterial);
-          this.infoName = infoName;
-          this.infoDescription = infoDescription;
-     }
-}
 
 
-class Dot{
-     constructor(geometry){
-          let dotMaterial =  new THREE.MeshPhongMaterial();
-          dotMaterial.color = new THREE.Color(dotColors[randInt(0,1)]);
-          dotMaterial.emissive = dotMaterial.color;
-          dotMaterial.emissiveIntensity = 5;
-
-          // let dotMaterial =  new THREE.MeshBasicMaterial();
-          // dotMaterial.color = dotColors[randInt(0,1)];
-
-          this.mesh = new THREE.Mesh(geometry, dotMaterial);
-
-          this.mesh.position.set(randInt(-window.innerWidth/4,window.innerWidth/4), randInt(-window.innerHeight/4,window.innerHeight/4), randInt(-window.innerWidth/4, window.innerWidth/4));
-          this.velocityX = 0.0;
-          this.velocityY = 0.0;
-     }
-     setVelocity(){
-          let dir = new THREE.Vector2(mousePos.x-this.mesh.position.x, mousePos.y-this.mesh.position.y);
-          dir.normalize();
-          // console.log("dir x:" + dir.x);
-          // console.log("dir y:" + dir.y);
-          this.velocityX = dir.x;
-          this.velocityY = dir.y;
-     }
-
-     move(){
-          this.mesh.position.x += this.velocityX;
-          this.mesh.position.y += this.velocityY; 
-     }
-     friction(){
-          if(this.velocityX > 0.0){
-               if(this.velocityX - settings.frictionRate < 0.0){
-                    this.velocityX = 0.0;
-               }
-               else {
-                    this.velocityX -= settings.frictionRate;
-               }
-          }
-          if(this.velocityX < 0.0){
-               if(this.velocityX + settings.frictionRate > 0.0){
-                    this.velocityX = 0.0;
-               }
-               else{
-                    this.velocityX += settings.frictionRate;
-               }
-          }
-
-          
-          if(this.velocityY > 0.0){
-               if(this.velocityY - 0.1 < 0.0){
-                    this.velocityY = 0.0;
-               }
-               else {
-                    this.velocityY -= 0.1;
-               }
-               
-          }
-          if(this.velocityY < 0.0){
-               if(this.velocityY + 0.1 > 0.0){
-                    this.velocityY = 0.0;
-               }
-               else {
-                    this.velocityY += 0.1;
-               }
-          }
-
-          
-     }
-     
-
-}
-
-window.addEventListener("resize", onWindowResize,false);
-
-function onWindowResize() {
-
-     camera.aspect = window.innerWidth / window.innerHeight;
-     camera.updateProjectionMatrix();
 
 
-     renderer.setSize( window.innerWidth, window.innerHeight ); 
-     
-
-}
 
 
-document.addEventListener("keydown", onDocumentKeyDown, false);
-function onDocumentKeyDown(event) {
-     
-    var keyCode = event.which;
-    if (keyCode == 72) { // 'h' ascii value
-        gui.show(gui._hidden);
-    }
-};
 
 
 
@@ -264,6 +163,7 @@ function followTargetObject(){
                // cosmicObjectToInspect.mesh.add(camera);
                shouldMoveCameraToTarget = false;
           }
+          // resetting inspection logic
      }
 
      
@@ -274,92 +174,7 @@ function followTargetObject(){
 
 
 
-document.addEventListener("mousedown", onDocumentMouseDown, false);
-function onDocumentMouseDown(event){
-     event.preventDefault();
 
-     // audio loading on user interaction, background music
-     if(!isAudioLoaded){
-          camera.add( audioListener); 
-          const musicAudio = new THREE.Audio( audioListener); 
-          audioLoader.load( './assets/meditative.mp3', function( buffer ) { 
-                    musicAudio.setBuffer( buffer ); 
-                    musicAudio.setVolume( 0.7 ); 
-                    musicAudio.autoplay = true;
-                    musicAudio.play();
-
-               }
-          );
-          isAudioLoaded = true;
-     }
-
-     if(pointedCosmicObject !== null){
-          whooshAudio.play();
-          
-          cosmicObjectToInspect = pointedCosmicObject;
-
-          
-
-          shouldMoveCameraToTarget = true;
-          // cleaning
-          if(glassContainer){
-               glassContainer.remove();
-          }
-          if(nameText){
-               nameText.remove();
-          }
-          if(descriptionText){
-               descriptionText.remove();
-          }
-
-          
-          glassContainer = document.createElement('div');
-          glassContainer.className = "glass-container";
-
-          nameText = document.createElement('h1');
-          nameText.innerHTML = cosmicObjectToInspect.infoName;
-          descriptionText = document.createElement('p');
-          descriptionText.innerHTML = cosmicObjectToInspect.infoDescription;
-
-          glassContainer.appendChild(nameText);
-          glassContainer.appendChild(descriptionText);
-
-          document.body.appendChild(glassContainer);
-          
-          toggleAutoRotation(true);
-     }
-     else{
-          if(cosmicObjectToInspect){
-               // resetting inspection logic
-               toggleAutoRotation(false);
-               shouldMoveCameraToTarget = false;
-          } 
-     }
-
-}
-
-document.addEventListener("mousemove", onDocumentMouseMove, false);
-function onDocumentMouseMove(event){
-     
-     event.preventDefault();
-
-     pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-     pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
-	mousePos.x = (event.clientX / window.innerWidth) * 2 - 1;
-	mousePos.y = - (event.clientY / window.innerHeight) * 2 + 1;
-
- // Make the sphere follow the mouse
-  var vector = new THREE.Vector3(mousePos.x, mousePos.y, 0.5);
-	vector.unproject( camera );
-	var dir = vector.sub( camera.position ).normalize();
-	var distance = - camera.position.z / dir.z;
-	mousePos = camera.position.clone().add( dir.multiplyScalar( distance ) );
-     // console.log("X" + mousePos.x);
-     // console.log("Y:" + mousePos.y);
-     // console.log("Z:" + mousePos.z);
-
-}
 
 
 for(let i = 0; i < settings.dotsAmount; i++){
@@ -383,6 +198,7 @@ scene.add(sunPivot);
 mercuryPivot = new THREE.Group();
 const mercury = new CosmicObject(mercuryPivot,2, new THREE.MeshPhongMaterial({color: 0xffffff, map: mercuryTexture}), "Mercury",
 "Mercury is the first planet from the Sun and the smallest in the Solar System. In English, it is named after the ancient Roman god Mercurius (Mercury), god of commerce and communication, and the messenger of the gods. Mercury is classified as a terrestrial planet, with roughly the same surface gravity as Mars. The surface of Mercury is heavily cratered, as a result of countless impact events that have accumulated over billions of years.") ;
+
 mercury.mesh.position.x = 55;
 mercuryPivot.add(mercury.mesh);
 scene.add(mercuryPivot);
@@ -469,7 +285,10 @@ function animate() {
 
 } 
 
+setupUserInputEvents();
+
 renderer.setAnimationLoop( animate );
+
 
 function simulateCosmicMovement(){
 
@@ -483,8 +302,120 @@ function simulateCosmicMovement(){
      venus.mesh.rotation.x -= 0.0006;
 
 
-     
      earthPivot.rotation.y += 0.0010;
      earth.mesh.rotation.y -= 0.005;
      earth.mesh.rotation.x -= 0.0006;
+}
+
+function setupUserInputEvents(){
+
+     window.addEventListener("resize", onWindowResize,false);
+
+     function onWindowResize() {
+
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+
+
+          renderer.setSize( window.innerWidth, window.innerHeight ); 
+          
+
+     }
+
+
+     document.addEventListener("keydown", onDocumentKeyDown, false);
+     function onDocumentKeyDown(event) {
+          
+          var keyCode = event.which;
+          if (keyCode == 72) { // 'h' ascii value
+               gui.show(gui._hidden);
+          }
+     };
+
+     document.addEventListener("mousedown", onDocumentMouseDown, false);
+     function onDocumentMouseDown(event){
+          event.preventDefault();
+
+          // audio loading on user interaction, background music
+          if(!isAudioLoaded){
+               camera.add( audioListener); 
+               const musicAudio = new THREE.Audio( audioListener); 
+               audioLoader.load( './assets/meditative.mp3', function( buffer ) { 
+                         musicAudio.setBuffer( buffer ); 
+                         musicAudio.setVolume( 0.7 ); 
+                         musicAudio.autoplay = true;
+                         musicAudio.play();
+
+                    }
+               );
+               isAudioLoaded = true;
+          }
+
+          if(pointedCosmicObject !== null){
+               whooshAudio.play();
+               
+               cosmicObjectToInspect = pointedCosmicObject;
+
+               
+
+               shouldMoveCameraToTarget = true;
+               // cleaning
+               if(glassContainer){
+                    glassContainer.remove();
+               }
+               if(nameText){
+                    nameText.remove();
+               }
+               if(descriptionText){
+                    descriptionText.remove();
+               }
+
+               
+               glassContainer = document.createElement('div');
+               glassContainer.className = "glass-container";
+
+               nameText = document.createElement('h1');
+               nameText.innerHTML = cosmicObjectToInspect.infoName;
+               descriptionText = document.createElement('p');
+               descriptionText.innerHTML = cosmicObjectToInspect.infoDescription;
+
+               glassContainer.appendChild(nameText);
+               glassContainer.appendChild(descriptionText);
+
+               document.body.appendChild(glassContainer);
+               
+               toggleAutoRotation(true);
+          }
+          else{
+               if(cosmicObjectToInspect){
+                    // resetting inspection logic
+                    toggleAutoRotation(false);
+                    shouldMoveCameraToTarget = false;
+               } 
+          }
+
+     }
+
+     document.addEventListener("mousemove", onDocumentMouseMove, false);
+     function onDocumentMouseMove(event){
+          
+          event.preventDefault();
+
+          pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+          pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+          mousePos.x = (event.clientX / window.innerWidth) * 2 - 1;
+          mousePos.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+     // Make the sphere follow the mouse
+     var vector = new THREE.Vector3(mousePos.x, mousePos.y, 0.5);
+          vector.unproject( camera );
+          var dir = vector.sub( camera.position ).normalize();
+          var distance = - camera.position.z / dir.z;
+          mousePos = camera.position.clone().add( dir.multiplyScalar( distance ) );
+          // console.log("X" + mousePos.x);
+          // console.log("Y:" + mousePos.y);
+          // console.log("Z:" + mousePos.z);
+
+     }
 }
