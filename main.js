@@ -38,11 +38,18 @@ const earthTexture = textureLoader.load('./assets/earth-texture-2k.jpg');
 earthTexture.colorSpace = THREE.SRGBColorSpace;
 const earthHeightMapTexture = textureLoader.load('./assets/earth-height-map-2k.jpg');
 
+const moonTexture = textureLoader.load('./assets/moon-texture-2k.jpg');
+moonTexture.colorSpace = THREE.SRGBColorSpace;
+
 const mercuryTexture = textureLoader.load('./assets/mercury-texture.jpg');
 mercuryTexture.colorSpace = THREE.SRGBColorSpace;
 
 const venusTexture = textureLoader.load('./assets/venus-texture.jpg');
 venusTexture.colorSpace = THREE.SRGBColorSpace;
+
+const marsTexture = textureLoader.load('./assets/mars-texture-2k.jpg');
+marsTexture.colorSpace = THREE.SRGBColorSpace;
+const marsHeightMapTexture = textureLoader.load('./assets/mars-height-map-2k.jpg');
 
 
 
@@ -50,7 +57,7 @@ venusTexture.colorSpace = THREE.SRGBColorSpace;
 let glassContainer;
 let nameText;
 let descriptionText;
-var sunPivot, mercuryPivot, venusPivot, earthPivot, marsPivot, asteroidBeltPivot;
+var sunPivot, mercuryPivot, venusPivot, earthPivot, moonPivot, marsPivot, asteroidBeltPivot;
 
 var cosmicObjectToInspect;
 var pointedCosmicObject;
@@ -228,13 +235,34 @@ const earth = new CosmicObject(earthPivot, 4,new THREE.MeshPhongMaterial({color:
 "Earth is the third planet from the Sun and the only astronomical object known to harbor life. This is enabled by Earth being an ocean world, the only one in the Solar System sustaining liquid surface water. Almost all of Earth's water is contained in its global ocean, covering 70.8% of Earth's crust. The remaining 29.2% of Earth's crust is land, most of which is located in the form of continental landmasses within Earth's land hemisphere.");
 earth.mesh.position.x = 80;
 earthPivot.add(earth.mesh);
+// Not adding to the scene here, because we have to provide earth as a parent to moon
+
+
+moonPivot = new THREE.Group();
+const moon = new CosmicObject(moonPivot, 1, new THREE.MeshPhongMaterial({color:0xffffff, map: moonTexture}), "Moon",
+"The Moon is Earth's only natural satellite. It orbits at an average distance of 384,400 km (238,900 mi), about 30 times the diameter of Earth. Tidal forces between Earth and the Moon have synchronized the Moon's orbital period (lunar month) with its rotation period (lunar day) at 29.5 Earth days, causing the same side of the Moon to always face Earth. The Moon's gravitational pull—and, to a lesser extent, the Sun's—are the main drivers of Earth's tides.");
+
+moonPivot.add(moon.mesh);
+moon.mesh.position.x += 8;
+earth.mesh.add(moonPivot);
+
 scene.add(earthPivot);
+
+
+
+
+marsPivot = new THREE.Group();
+const mars = new CosmicObject(marsPivot, 5, new THREE.MeshPhongMaterial({color: 0xffffff, map: marsTexture, displacementMap: marsHeightMapTexture, displacementScale: 0.1}), "Mars",
+"Mars is the fourth planet from the Sun. The surface of Mars is orange-red because it is covered in iron(III) oxide dust, giving it the nickname 'the Red Planet'. Mars is among the brightest objects in Earth's sky, and its high-contrast albedo features have made it a common subject for telescope viewing. It is classified as a terrestrial planet and is the second smallest of the Solar System's planets with a diameter of 6,779 km (4,212 mi). In terms of orbital motion, a Martian solar day (sol) is equal to 24.5 hours, and a Martian solar year is equal to 1.88 Earth years (687 Earth days). Mars has two natural satellites that are small and irregular in shape: Phobos and Deimos. ");
+mars.mesh.position.x = 90;
+marsPivot.add(mars.mesh);
+scene.add(marsPivot);
 
 asteroidBeltPivot = new THREE.Group();
 for(let i = 0; i < 1000; i++){
      let widthSegments = randInt(3,6);
      let heightSegments = randInt(3,6);
-     let asteroid = new THREE.Mesh(new THREE.SphereGeometry(0.5,widthSegments, heightSegments), new THREE.MeshPhongMaterial({color: 0xffffff}));
+     let asteroid = new THREE.Mesh(new THREE.SphereGeometry(0.5,widthSegments, heightSegments), new THREE.MeshPhongMaterial({color: 0x533a34}));
      // Degrees 2 Radians
      let angle = randFloat(0,360) * (Math.PI / 180); 
      asteroid.position.x = 105 * Math.cos(angle);
@@ -280,12 +308,16 @@ objectsToIntersect.push(sun.mesh);
 objectsToIntersect.push(mercury.mesh);
 objectsToIntersect.push(venus.mesh);
 objectsToIntersect.push(earth.mesh);
+objectsToIntersect.push(mars.mesh);
+objectsToIntersect.push(moon.mesh);
 
 const meshToCosmicObjectDictionary = {};
 meshToCosmicObjectDictionary[sun.mesh.id] = sun;
 meshToCosmicObjectDictionary[mercury.mesh.id] = mercury;
 meshToCosmicObjectDictionary[venus.mesh.id] = venus;
 meshToCosmicObjectDictionary[earth.mesh.id] = earth;
+meshToCosmicObjectDictionary[mars.mesh.id] = mars;
+meshToCosmicObjectDictionary[moon.mesh.id] = moon;
 
 
 function animate() {
@@ -334,7 +366,7 @@ renderer.setAnimationLoop( animate );
 
 function simulateCosmicMovement(){
 
-     asteroidBeltPivot.rotation.y += 0.00010;
+
      mercuryPivot.rotation.y += 0.002;
      mercury.mesh.rotation.y -= 0.005;
      mercury.mesh.rotation.x -= 0.0006;
@@ -348,6 +380,14 @@ function simulateCosmicMovement(){
      earthPivot.rotation.y += 0.0010;
      earth.mesh.rotation.y -= 0.005;
      earth.mesh.rotation.x -= 0.0006;
+
+     moonPivot.rotation.y += 0.015;
+
+     asteroidBeltPivot.rotation.y += 0.00010;
+
+     marsPivot.rotation.y += 0.0005;
+     mars.mesh.rotation.y -= 0.003;
+     mars.mesh.rotation.x -= 0.0003;
 }
 
 
