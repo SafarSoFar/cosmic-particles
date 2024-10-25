@@ -23,11 +23,20 @@ audioLoader.load("./assets/whoosh.mp3", function(buffer){
      whooshAudio.setBuffer(buffer);
 });
 
+const textureLoader = new THREE.TextureLoader();
+const earthTexture = textureLoader.load('./assets/earth-texture.jpg');
+earthTexture.colorSpace = THREE.SRGBColorSpace;
+const mercuryTexture = textureLoader.load('./assets/mercury-texture.jpg');
+mercuryTexture.colorSpace = THREE.SRGBColorSpace;
+const venusTexture = textureLoader.load('./assets/venus-texture.jpg');
+venusTexture.colorSpace = THREE.SRGBColorSpace;
+
+
 
 let glassContainer;
 let nameText;
 let descriptionText;
-var sunPivot, mercuryPivot, venusPivot;
+var sunPivot, mercuryPivot, venusPivot, earthPivot;
 
 var cosmicObjectToInspect;
 var pointedCosmicObject;
@@ -35,7 +44,9 @@ var pointedCosmicObject;
 
 
 // Sun emmision ambientLight
-scene.add(new THREE.AmbientLight(0xfce570));
+// scene.add(new THREE.AmbientLight(0xfce570));
+// scene.add(new THREE.DirectionalLight(0xfce570, 3));
+scene.add(new THREE.PointLight(0xffffff, 10000, 10000));
 
 // renderer.setClearColor(0xffffff);
 renderer.setSize( window.innerWidth, window.innerHeight ); 
@@ -243,11 +254,11 @@ function moveCameraToTarget(){
      let dist = camera.position.distanceTo(targetGlobalPos);
      
      if(dist > cosmicObjectToInspect.objectRadius+inspectionDistanceOffset){
-          camera.position.lerp(targetGlobalPos, 0.04);
+          camera.position.lerp(targetGlobalPos, 0.09);
      }
-     // else{
-     //      shouldMoveCameraToTarget = false;
-     // }
+     else{
+          shouldMoveCameraToTarget = false;
+     }
 
      
      
@@ -350,27 +361,36 @@ for(let i = 0; i < settings.dotsAmount; i++){
 
 camera.position.z = 300;
 
+// Separate planet pivot is required in order to rotate them with different speed.
+
 
 sunPivot = new THREE.Group();
-const sun = new CosmicObject(sunPivot,30, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}), "Sun", 
+const sun = new CosmicObject(sunPivot,30, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 2.0}), "Sun", 
 "The Sun is the star at the center of the Solar System. It is a massive, nearly perfect sphere of hot plasma, heated to incandescence by nuclear fusion reactions in its core, radiating the energy from its surface mainly as visible light and infrared radiation with 10% at ultraviolet energies");
 // const sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
 sunPivot.add(sun.mesh);
 scene.add(sunPivot);
 
 mercuryPivot = new THREE.Group();
-const mercury = new CosmicObject(mercuryPivot,2, new THREE.MeshBasicMaterial({color: 0x333333}), "Mercury",
+const mercury = new CosmicObject(mercuryPivot,2, new THREE.MeshPhongMaterial({color: 0xffffff, map: mercuryTexture}), "Mercury",
 "Mercury is the first planet from the Sun and the smallest in the Solar System. In English, it is named after the ancient Roman god Mercurius (Mercury), god of commerce and communication, and the messenger of the gods. Mercury is classified as a terrestrial planet, with roughly the same surface gravity as Mars. The surface of Mercury is heavily cratered, as a result of countless impact events that have accumulated over billions of years.") ;
 mercury.mesh.position.x = 55;
 mercuryPivot.add(mercury.mesh);
 scene.add(mercuryPivot);
 
 venusPivot = new THREE.Group();
-const venus = new CosmicObject(venusPivot,5, new THREE.MeshPhongMaterial({color: 0xe0730d}), "Venus",
+const venus = new CosmicObject(venusPivot,5, new THREE.MeshPhongMaterial({color: 0xffffff, map: venusTexture}), "Venus",
 "Venus is the second planet from the Sun. It is a terrestrial planet and is the closest in mass and size to its orbital neighbour Earth. Venus has by far the densest atmosphere of the terrestrial planets, composed mostly of carbon dioxide with a thick, global sulfuric acid cloud cover.") ;
 venus.mesh.position.x = 70;
 venusPivot.add(venus.mesh);
 scene.add(venusPivot);
+
+earthPivot = new THREE.Group();
+const earth = new CosmicObject(earthPivot, 4,new THREE.MeshPhongMaterial({color:0xffffff, map: earthTexture}), "Earth",
+"Earth");
+earth.mesh.position.x = 80;
+earthPivot.add(earth.mesh);
+scene.add(earthPivot);
 
 let ring1Geo = new THREE.TorusGeometry(55, 0.2, 128, 128);
 const ring = new THREE.LineBasicMaterial({color: 0xffffff});
@@ -381,6 +401,10 @@ let ring2Geo = new THREE.TorusGeometry(70, 0.2, 128, 128);
 const ring2 =  new THREE.Mesh(ring2Geo, ring);
 ring2.rotateX(Math.PI / 2);
 scene.add(ring2);
+let ring3Geo = new THREE.TorusGeometry(80, 0.2, 128, 128);
+const ring3 =  new THREE.Mesh(ring3Geo, ring);
+ring3.rotateX(Math.PI / 2);
+scene.add(ring3);
 
 
 
@@ -388,11 +412,13 @@ let objectsToIntersect = [];
 objectsToIntersect.push(sun.mesh);
 objectsToIntersect.push(mercury.mesh);
 objectsToIntersect.push(venus.mesh);
+objectsToIntersect.push(earth.mesh);
 
 const meshToCosmicObjectDictionary = {};
 meshToCosmicObjectDictionary[sun.mesh.id] = sun;
 meshToCosmicObjectDictionary[mercury.mesh.id] = mercury;
 meshToCosmicObjectDictionary[venus.mesh.id] = venus;
+meshToCosmicObjectDictionary[earth.mesh.id] = earth;
 
 
 function animate() {
@@ -411,6 +437,7 @@ function animate() {
 
      mercuryPivot.rotation.y += 0.001;
      venusPivot.rotation.y += 0.0005;
+     earthPivot.rotation.y += 0.0010;
 
      
 
