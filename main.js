@@ -4,8 +4,20 @@ import { clamp, normalize, randFloat, randInt } from 'three/src/math/MathUtils.j
 import {GUI} from 'lil-gui';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'; 
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'; 
-import {Dot, SolarSystemBody } from './classes.js';
+import {Dot, SolarSystemBody, SolarSystemObject } from './classes.js';
 
+
+let objectsToIntersect = [];
+const meshToInspectableObjectDictionary = {};
+
+var sunPivot, mercuryPivot, venusPivot, earthPivot, moonPivot, marsPivot, asteroidBeltPivot;
+var sun, mercury, venus, earth, moon, mars;
+var jamesWebb, asteroidBelt;
+
+var mercuryRing, venusRing, earthRing, marsRing, asteroidBeltRing; 
+
+var cosmicObjectToInspect;
+var pointedCosmicObject;
 
 const sunSize = 30;
 const mercurySize = 2;
@@ -70,12 +82,15 @@ const marsHeightMapTexture = textureLoader.load('./assets/mars-height-map-2k.jpg
 const gltfLoader = new GLTFLoader();
 gltfLoader.load('./assets/james-webb/scene.gltf', (gltf) =>{
      const root = gltf.scene;
-     // let jamesWebb = new 
+     jamesWebb = new SolarSystemObject(root.children[0], "James Webb", "Telescope.");
      root.children[0].position.x = 50;
      root.children[0].position.y = 30;
-     root.children[0].scale.set(0.1,0.1,0.1);
+     root.children[0].scale.set(0.5,0.5,0.5);
      root.children[0].rotateZ(-(Math.PI/2));
-     scene.add(root);
+     scene.add(root.children[0]);
+
+     // objectsToIntersect.push(jamesWebb.mesh);
+     // meshToCosmicObjectDictionary[jamesWebb.mesh.id] = jamesWebb;
 });
 
 
@@ -84,11 +99,7 @@ var nameText;
 var descriptionText;
 
 
-var sunPivot, mercuryPivot, venusPivot, earthPivot, moonPivot, marsPivot, asteroidBeltPivot;
-var mercuryRing, venusRing, earthRing, marsRing, asteroidBeltRing; 
 
-var cosmicObjectToInspect;
-var pointedCosmicObject;
 // renderer.setClearColor(0x010328);
 
 
@@ -245,14 +256,14 @@ camera.position.z = 300;
 
 
 sunPivot = new THREE.Group();
-const sun = new SolarSystemBody(sunPivot,sunSize, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 2.0}), "Sun", 
+sun = new SolarSystemBody(sunPivot,sunSize, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 2.0}), "Sun", 
 "The Sun is the star at the center of the Solar System. It is a massive, nearly perfect sphere of hot plasma, heated to incandescence by nuclear fusion reactions in its core, radiating the energy from its surface mainly as visible light and infrared radiation with 10% at ultraviolet energies");
 // const sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
 sunPivot.add(sun.mesh);
 scene.add(sunPivot);
 
 mercuryPivot = new THREE.Group();
-const mercury = new SolarSystemBody(mercuryPivot,mercurySize, new THREE.MeshPhongMaterial({color: 0xffffff, map: mercuryTexture}), "Mercury",
+mercury = new SolarSystemBody(mercuryPivot,mercurySize, new THREE.MeshPhongMaterial({color: 0xffffff, map: mercuryTexture}), "Mercury",
 "Mercury is the first planet from the Sun and the smallest in the Solar System. In English, it is named after the ancient Roman god Mercurius (Mercury), god of commerce and communication, and the messenger of the gods. Mercury is classified as a terrestrial planet, with roughly the same surface gravity as Mars. The surface of Mercury is heavily cratered, as a result of countless impact events that have accumulated over billions of years.") ;
 
 mercury.mesh.position.x = mercuryRingRadius;
@@ -260,14 +271,14 @@ mercuryPivot.add(mercury.mesh);
 scene.add(mercuryPivot);
 
 venusPivot = new THREE.Group();
-const venus = new SolarSystemBody(venusPivot,venusSize, new THREE.MeshPhongMaterial({color: 0xffffff, map: venusTexture}), "Venus",
+venus = new SolarSystemBody(venusPivot,venusSize, new THREE.MeshPhongMaterial({color: 0xffffff, map: venusTexture}), "Venus",
 "Venus is the second planet from the Sun. It is a terrestrial planet and is the closest in mass and size to its orbital neighbour Earth. Venus has by far the densest atmosphere of the terrestrial planets, composed mostly of carbon dioxide with a thick, global sulfuric acid cloud cover.") ;
 venus.mesh.position.x = venusRingRadius;
 venusPivot.add(venus.mesh);
 scene.add(venusPivot);
 
 earthPivot = new THREE.Group();
-const earth = new SolarSystemBody(earthPivot, earthSize,new THREE.MeshPhongMaterial({color:0xffffff, map: earthTexture, displacementMap: earthHeightMapTexture, displacementScale: 0.1}), "Earth",
+earth = new SolarSystemBody(earthPivot, earthSize,new THREE.MeshPhongMaterial({color:0xffffff, map: earthTexture, displacementMap: earthHeightMapTexture, displacementScale: 0.1}), "Earth",
 "Earth is the third planet from the Sun and the only astronomical object known to harbor life. This is enabled by Earth being an ocean world, the only one in the Solar System sustaining liquid surface water. Almost all of Earth's water is contained in its global ocean, covering 70.8% of Earth's crust. The remaining 29.2% of Earth's crust is land, most of which is located in the form of continental landmasses within Earth's land hemisphere.");
 earth.mesh.position.x = earthRingRadius;
 earthPivot.add(earth.mesh);
@@ -275,7 +286,7 @@ earthPivot.add(earth.mesh);
 
 
 moonPivot = new THREE.Group();
-const moon = new SolarSystemBody(moonPivot, moonSize, new THREE.MeshPhongMaterial({color:0xffffff, map: moonTexture}), "Moon",
+moon = new SolarSystemBody(moonPivot, moonSize, new THREE.MeshPhongMaterial({color:0xffffff, map: moonTexture}), "Moon",
 "The Moon is Earth's only natural satellite. It orbits at an average distance of 384,400 km (238,900 mi), about 30 times the diameter of Earth. Tidal forces between Earth and the Moon have synchronized the Moon's orbital period (lunar month) with its rotation period (lunar day) at 29.5 Earth days, causing the same side of the Moon to always face Earth. The Moon's gravitational pull—and, to a lesser extent, the Sun's—are the main drivers of Earth's tides.");
 
 moonPivot.add(moon.mesh);
@@ -288,7 +299,7 @@ scene.add(earthPivot);
 
 
 marsPivot = new THREE.Group();
-const mars = new SolarSystemBody(marsPivot, marsSize, new THREE.MeshPhongMaterial({color: 0xffffff, map: marsTexture, displacementMap: marsHeightMapTexture, displacementScale: 0.1}), "Mars",
+mars = new SolarSystemBody(marsPivot, marsSize, new THREE.MeshPhongMaterial({color: 0xffffff, map: marsTexture, displacementMap: marsHeightMapTexture, displacementScale: 0.1}), "Mars",
 "Mars is the fourth planet from the Sun. The surface of Mars is orange-red because it is covered in iron(III) oxide dust, giving it the nickname 'the Red Planet'. Mars is among the brightest objects in Earth's sky, and its high-contrast albedo features have made it a common subject for telescope viewing. It is classified as a terrestrial planet and is the second smallest of the Solar System's planets with a diameter of 6,779 km (4,212 mi). In terms of orbital motion, a Martian solar day (sol) is equal to 24.5 hours, and a Martian solar year is equal to 1.88 Earth years (687 Earth days). Mars has two natural satellites that are small and irregular in shape: Phobos and Deimos. ");
 mars.mesh.position.x = marsRingRadius;
 marsPivot.add(mars.mesh);
@@ -339,7 +350,6 @@ scene.add(asteroidBeltRing);
 
 
 
-let objectsToIntersect = [];
 objectsToIntersect.push(sun.mesh);
 objectsToIntersect.push(mercury.mesh);
 objectsToIntersect.push(venus.mesh);
@@ -347,13 +357,12 @@ objectsToIntersect.push(earth.mesh);
 objectsToIntersect.push(mars.mesh);
 objectsToIntersect.push(moon.mesh);
 
-const meshToCosmicObjectDictionary = {};
-meshToCosmicObjectDictionary[sun.mesh.id] = sun;
-meshToCosmicObjectDictionary[mercury.mesh.id] = mercury;
-meshToCosmicObjectDictionary[venus.mesh.id] = venus;
-meshToCosmicObjectDictionary[earth.mesh.id] = earth;
-meshToCosmicObjectDictionary[mars.mesh.id] = mars;
-meshToCosmicObjectDictionary[moon.mesh.id] = moon;
+meshToInspectableObjectDictionary[sun.mesh.id] = sun;
+meshToInspectableObjectDictionary[mercury.mesh.id] = mercury;
+meshToInspectableObjectDictionary[venus.mesh.id] = venus;
+meshToInspectableObjectDictionary[earth.mesh.id] = earth;
+meshToInspectableObjectDictionary[mars.mesh.id] = mars;
+meshToInspectableObjectDictionary[moon.mesh.id] = moon;
 
 
 function animate() {
@@ -383,7 +392,7 @@ function animate() {
      raycaster.setFromCamera(pointer, camera);
      const intersects = raycaster.intersectObjects(objectsToIntersect, false);
      if(intersects.length > 0){
-          pointedCosmicObject = meshToCosmicObjectDictionary[intersects[0].object.id];
+          pointedCosmicObject = meshToInspectableObjectDictionary[intersects[0].object.id];
      }
      else{
           pointedCosmicObject = null;
@@ -487,6 +496,7 @@ function setupUserInputEvents(){
                whooshAudio.play();
                
                cosmicObjectToInspect = pointedCosmicObject;
+               console.log("Clicked cosmic object:" + cosmicObjectToInspect);
 
 
                shouldMoveCameraToTarget = true;
