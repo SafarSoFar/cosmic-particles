@@ -4,7 +4,7 @@ import { clamp, normalize, randFloat, randInt } from 'three/src/math/MathUtils.j
 
 
 
-export class CosmicObject{
+export class SolarSystemBody{
      constructor(objectPivot, objectRadius, objectMaterial, infoName, infoDescription){
           this.objectPivot = objectPivot;
           this.objectRadius = objectRadius;

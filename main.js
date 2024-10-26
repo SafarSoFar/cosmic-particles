@@ -1,11 +1,26 @@
 import * as THREE from 'three';
-import { OrbitControls, UnrealBloomPass } from 'three/examples/jsm/Addons.js';
+import {GLTFLoader, OrbitControls, UnrealBloomPass } from 'three/examples/jsm/Addons.js';
 import { clamp, normalize, randFloat, randInt } from 'three/src/math/MathUtils.js';
 import {GUI} from 'lil-gui';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'; 
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'; 
-import {Dot, CosmicObject } from './classes.js';
+import {Dot, SolarSystemBody } from './classes.js';
 
+
+const sunSize = 30;
+const mercurySize = 2;
+const venusSize = 5;
+const earthSize = 4;
+const moonSize = 1;
+const marsSize = 5; 
+
+const mainAsteroidBeltAsteroidsAmount = 1000;
+
+const mercuryRingRadius = 55;
+const venusRingRadius = 70;
+const earthRingRadius = 80;
+const marsRingRadius = 90;
+const asteroidBeltRingRadius = 105;
 
 // function randomInt(min, max){
 //      return Math.floor(Math.random() * (max-min+1)+min);
@@ -17,14 +32,15 @@ const scene = new THREE.Scene();
 const renderer = new THREE.WebGLRenderer(); 
 const raycaster = new THREE.Raycaster();
 let audioListener = new THREE.AudioListener();
-var isAudioLoaded = false;
 let audioLoader = new THREE.AudioLoader();
+
 let backgroundAudio = new THREE.Audio(audioListener);
 
+// FIXME: background audio doesn't play if player interacted with the page while the page is still loading
 audioLoader.load("./assets/meditative.mp3", function(buffer){
      backgroundAudio.setBuffer(buffer);
-     backgroundAudio.setVolume(0.7);
-     backgroundAudio.autoplay = true;
+     backgroundAudio.setVolume(1.0);
+     backgroundAudio.setLoop(true);
 });
 
 let whooshAudio = new THREE.Audio(audioListener);
@@ -51,13 +67,25 @@ const marsTexture = textureLoader.load('./assets/mars-texture-2k.jpg');
 marsTexture.colorSpace = THREE.SRGBColorSpace;
 const marsHeightMapTexture = textureLoader.load('./assets/mars-height-map-2k.jpg');
 
+const gltfLoader = new GLTFLoader();
+gltfLoader.load('./assets/james-webb/scene.gltf', (gltf) =>{
+     const root = gltf.scene;
+     // let jamesWebb = new 
+     root.children[0].position.x = 50;
+     root.children[0].position.y = 30;
+     root.children[0].scale.set(0.1,0.1,0.1);
+     root.children[0].rotateZ(-(Math.PI/2));
+     scene.add(root);
+});
 
 
+var glassContainer;
+var nameText;
+var descriptionText;
 
-let glassContainer;
-let nameText;
-let descriptionText;
+
 var sunPivot, mercuryPivot, venusPivot, earthPivot, moonPivot, marsPivot, asteroidBeltPivot;
+var mercuryRing, venusRing, earthRing, marsRing, asteroidBeltRing; 
 
 var cosmicObjectToInspect;
 var pointedCosmicObject;
@@ -106,6 +134,12 @@ let settings = {
      frictionRate : 0.003,
 }
 
+let teleport = {
+     jamesWebb: function(){
+
+     }
+}
+
 let mousePos = new THREE.Vector3(0,0,0);
 let pointer = new THREE.Vector2();
 let shouldMoveCameraToTarget = false;
@@ -129,7 +163,9 @@ function changeDotsAmount(value){
 }
 
 
-// const gui = new GUI();
+const gui = new GUI();
+gui.title("Teleport");
+gui.add(teleport, "jamesWebb");
 // gui.add(settings, "distanceAffection", 50, 300, 10);
 // gui.add(settings, "frictionRate", 0.003, 0.01);
 // gui.add(settings, "dotsAmount", 100, 7000).onChange(value => changeDotsAmount(value));
@@ -209,37 +245,37 @@ camera.position.z = 300;
 
 
 sunPivot = new THREE.Group();
-const sun = new CosmicObject(sunPivot,30, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 2.0}), "Sun", 
+const sun = new SolarSystemBody(sunPivot,sunSize, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 2.0}), "Sun", 
 "The Sun is the star at the center of the Solar System. It is a massive, nearly perfect sphere of hot plasma, heated to incandescence by nuclear fusion reactions in its core, radiating the energy from its surface mainly as visible light and infrared radiation with 10% at ultraviolet energies");
 // const sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
 sunPivot.add(sun.mesh);
 scene.add(sunPivot);
 
 mercuryPivot = new THREE.Group();
-const mercury = new CosmicObject(mercuryPivot,2, new THREE.MeshPhongMaterial({color: 0xffffff, map: mercuryTexture}), "Mercury",
+const mercury = new SolarSystemBody(mercuryPivot,mercurySize, new THREE.MeshPhongMaterial({color: 0xffffff, map: mercuryTexture}), "Mercury",
 "Mercury is the first planet from the Sun and the smallest in the Solar System. In English, it is named after the ancient Roman god Mercurius (Mercury), god of commerce and communication, and the messenger of the gods. Mercury is classified as a terrestrial planet, with roughly the same surface gravity as Mars. The surface of Mercury is heavily cratered, as a result of countless impact events that have accumulated over billions of years.") ;
 
-mercury.mesh.position.x = 55;
+mercury.mesh.position.x = mercuryRingRadius;
 mercuryPivot.add(mercury.mesh);
 scene.add(mercuryPivot);
 
 venusPivot = new THREE.Group();
-const venus = new CosmicObject(venusPivot,5, new THREE.MeshPhongMaterial({color: 0xffffff, map: venusTexture}), "Venus",
+const venus = new SolarSystemBody(venusPivot,venusSize, new THREE.MeshPhongMaterial({color: 0xffffff, map: venusTexture}), "Venus",
 "Venus is the second planet from the Sun. It is a terrestrial planet and is the closest in mass and size to its orbital neighbour Earth. Venus has by far the densest atmosphere of the terrestrial planets, composed mostly of carbon dioxide with a thick, global sulfuric acid cloud cover.") ;
-venus.mesh.position.x = 70;
+venus.mesh.position.x = venusRingRadius;
 venusPivot.add(venus.mesh);
 scene.add(venusPivot);
 
 earthPivot = new THREE.Group();
-const earth = new CosmicObject(earthPivot, 4,new THREE.MeshPhongMaterial({color:0xffffff, map: earthTexture, displacementMap: earthHeightMapTexture, displacementScale: 0.1}), "Earth",
+const earth = new SolarSystemBody(earthPivot, earthSize,new THREE.MeshPhongMaterial({color:0xffffff, map: earthTexture, displacementMap: earthHeightMapTexture, displacementScale: 0.1}), "Earth",
 "Earth is the third planet from the Sun and the only astronomical object known to harbor life. This is enabled by Earth being an ocean world, the only one in the Solar System sustaining liquid surface water. Almost all of Earth's water is contained in its global ocean, covering 70.8% of Earth's crust. The remaining 29.2% of Earth's crust is land, most of which is located in the form of continental landmasses within Earth's land hemisphere.");
-earth.mesh.position.x = 80;
+earth.mesh.position.x = earthRingRadius;
 earthPivot.add(earth.mesh);
 // Not adding to the scene here, because we have to provide earth as a parent to moon
 
 
 moonPivot = new THREE.Group();
-const moon = new CosmicObject(moonPivot, 1, new THREE.MeshPhongMaterial({color:0xffffff, map: moonTexture}), "Moon",
+const moon = new SolarSystemBody(moonPivot, moonSize, new THREE.MeshPhongMaterial({color:0xffffff, map: moonTexture}), "Moon",
 "The Moon is Earth's only natural satellite. It orbits at an average distance of 384,400 km (238,900 mi), about 30 times the diameter of Earth. Tidal forces between Earth and the Moon have synchronized the Moon's orbital period (lunar month) with its rotation period (lunar day) at 29.5 Earth days, causing the same side of the Moon to always face Earth. The Moon's gravitational pull—and, to a lesser extent, the Sun's—are the main drivers of Earth's tides.");
 
 moonPivot.add(moon.mesh);
@@ -252,22 +288,22 @@ scene.add(earthPivot);
 
 
 marsPivot = new THREE.Group();
-const mars = new CosmicObject(marsPivot, 5, new THREE.MeshPhongMaterial({color: 0xffffff, map: marsTexture, displacementMap: marsHeightMapTexture, displacementScale: 0.1}), "Mars",
+const mars = new SolarSystemBody(marsPivot, marsSize, new THREE.MeshPhongMaterial({color: 0xffffff, map: marsTexture, displacementMap: marsHeightMapTexture, displacementScale: 0.1}), "Mars",
 "Mars is the fourth planet from the Sun. The surface of Mars is orange-red because it is covered in iron(III) oxide dust, giving it the nickname 'the Red Planet'. Mars is among the brightest objects in Earth's sky, and its high-contrast albedo features have made it a common subject for telescope viewing. It is classified as a terrestrial planet and is the second smallest of the Solar System's planets with a diameter of 6,779 km (4,212 mi). In terms of orbital motion, a Martian solar day (sol) is equal to 24.5 hours, and a Martian solar year is equal to 1.88 Earth years (687 Earth days). Mars has two natural satellites that are small and irregular in shape: Phobos and Deimos. ");
-mars.mesh.position.x = 90;
+mars.mesh.position.x = marsRingRadius;
 marsPivot.add(mars.mesh);
 scene.add(marsPivot);
 
 asteroidBeltPivot = new THREE.Group();
-for(let i = 0; i < 1000; i++){
+for(let i = 0; i < mainAsteroidBeltAsteroidsAmount; i++){
      let widthSegments = randInt(3,6);
      let heightSegments = randInt(3,6);
      let asteroid = new THREE.Mesh(new THREE.SphereGeometry(0.5,widthSegments, heightSegments), new THREE.MeshPhongMaterial({color: 0x533a34}));
      // Degrees 2 Radians
      let angle = randFloat(0,360) * (Math.PI / 180); 
-     asteroid.position.x = 105 * Math.cos(angle);
+     asteroid.position.x = asteroidBeltRingRadius * Math.cos(angle);
      asteroid.position.y = randFloat(-1,1);
-     asteroid.position.z = 105 * Math.sin(angle);
+     asteroid.position.z = asteroidBeltRingRadius * Math.sin(angle);
      asteroidBeltPivot.add(asteroid);
 }
 scene.add(asteroidBeltPivot);
@@ -276,28 +312,28 @@ scene.add(asteroidBeltPivot);
 // Ring creation is not automated because radiuses of the rings are individual
 const ringMat = new THREE.LineBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.01});
 
-let mercuryRingGeo = new THREE.TorusGeometry(55, 0.2, 128, 128);
-const mercuryRing =  new THREE.Mesh(mercuryRingGeo, ringMat);
+let mercuryRingGeo = new THREE.TorusGeometry(mercuryRingRadius, 0.2, 128, 128);
+mercuryRing =  new THREE.Mesh(mercuryRingGeo, ringMat);
 mercuryRing.rotateX(Math.PI / 2);
 scene.add(mercuryRing);
 
-let venusRingGeo = new THREE.TorusGeometry(70, 0.2, 128, 128);
-const venusRing =  new THREE.Mesh(venusRingGeo, ringMat);
+let venusRingGeo = new THREE.TorusGeometry(venusRingRadius, 0.2, 128, 128);
+venusRing =  new THREE.Mesh(venusRingGeo, ringMat);
 venusRing.rotateX(Math.PI / 2);
 scene.add(venusRing);
 
-let earthRingGeo = new THREE.TorusGeometry(80, 0.2, 128, 128);
-const earthRing =  new THREE.Mesh(earthRingGeo, ringMat);
+let earthRingGeo = new THREE.TorusGeometry(earthRingRadius, 0.2, 128, 128);
+earthRing =  new THREE.Mesh(earthRingGeo, ringMat);
 earthRing.rotateX(Math.PI / 2);
 scene.add(earthRing);
 
-let marsRingGeo = new THREE.TorusGeometry(90, 0.2, 128, 128);
-const marsRing =  new THREE.Mesh(marsRingGeo, ringMat);
+let marsRingGeo = new THREE.TorusGeometry(marsRingRadius, 0.2, 128, 128);
+marsRing =  new THREE.Mesh(marsRingGeo, ringMat);
 marsRing.rotateX(Math.PI / 2);
 scene.add(marsRing);
 
-let asteroidBeltRingGeo = new THREE.TorusGeometry(105, 0.2, 128, 128);
-const asteroidBeltRing =  new THREE.Mesh(asteroidBeltRingGeo, ringMat);
+let asteroidBeltRingGeo = new THREE.TorusGeometry(asteroidBeltRingRadius, 0.2, 128, 128);
+asteroidBeltRing =  new THREE.Mesh(asteroidBeltRingGeo, ringMat);
 asteroidBeltRing.rotateX(Math.PI / 2);
 scene.add(asteroidBeltRing);
 
@@ -441,11 +477,10 @@ function setupUserInputEvents(){
           event.preventDefault();
 
           // audio loading on user interaction, background music
-          if(!isAudioLoaded){
-               camera.add( audioListener); 
+          if(!backgroundAudio.isPlaying){
+               camera.add(audioListener); 
                backgroundAudio.play();
                
-               isAudioLoaded = true;
           }
 
           if(pointedCosmicObject !== null){
