@@ -2,27 +2,26 @@ import * as THREE from 'three';
 import { clamp, normalize, randFloat, randInt } from 'three/src/math/MathUtils.js';
 
 class InspectableObject{
-     constructor(infoName, infoDescription){
+     constructor(mesh, infoName, infoDescription){
           this.infoName = infoName;
           this.infoDescription = infoDescription;
+          this.mesh = mesh;
      }
 }
 
-export class SolarSystemObject{
+export class SolarSystemObject extends InspectableObject{
      constructor(mesh, infoName, infoDescription){
-          this.mesh = mesh;
-          this.infoName = infoName;
-          this.infoDescription = infoDescription;
+          super(mesh, infoName, infoDescription);
      }
 }
 
 export class SolarSystemBody extends InspectableObject{
      constructor(objectPivot, objectRadius, objectMaterial, infoName, infoDescription){
-          super(infoName, infoDescription);
+          let objectGeometry = new THREE.SphereGeometry(objectRadius, 128, 128);
+          let mesh = new THREE.Mesh(objectGeometry, objectMaterial);
+          super(mesh, infoName, infoDescription);
           this.objectPivot = objectPivot;
           this.objectRadius = objectRadius;
-          this.objectGeometry = new THREE.SphereGeometry(objectRadius, 128, 128);
-          this.mesh = new THREE.Mesh(this.objectGeometry, objectMaterial);
      }
 }
 

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {GLTFLoader, OrbitControls, UnrealBloomPass } from 'three/examples/jsm/Addons.js';
+import {GLTFLoader,OBJLoader, OrbitControls, UnrealBloomPass } from 'three/examples/jsm/Addons.js';
 import { clamp, normalize, randFloat, randInt } from 'three/src/math/MathUtils.js';
 import {GUI} from 'lil-gui';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'; 
@@ -7,8 +7,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import {Dot, SolarSystemBody, SolarSystemObject } from './classes.js';
 
 
-let objectsToIntersect = [];
-const meshToInspectableObjectDictionary = {};
+var objectsToIntersect = [];
+var idToInspectableObjectDictionary = {};
 
 var sunPivot, mercuryPivot, venusPivot, earthPivot, moonPivot, marsPivot, asteroidBeltPivot;
 var sun, mercury, venus, earth, moon, mars;
@@ -81,17 +81,32 @@ const marsHeightMapTexture = textureLoader.load('./assets/mars-height-map-2k.jpg
 
 const gltfLoader = new GLTFLoader();
 gltfLoader.load('./assets/james-webb/scene.gltf', (gltf) =>{
-     const root = gltf.scene;
-     jamesWebb = new SolarSystemObject(root.children[0], "James Webb", "Telescope.");
-     root.children[0].position.x = 50;
-     root.children[0].position.y = 30;
-     root.children[0].scale.set(0.5,0.5,0.5);
-     root.children[0].rotateZ(-(Math.PI/2));
-     scene.add(root.children[0]);
 
-     // objectsToIntersect.push(jamesWebb.mesh);
-     // meshToCosmicObjectDictionary[jamesWebb.mesh.id] = jamesWebb;
+     const root = gltf.scene;
+     root.updateMatrixWorld();
+
+     jamesWebb = new SolarSystemObject(root, "James Webb Space Telescope", 
+          "The James Webb Space Telescope (JWST) is a space telescope designed to conduct infrared astronomy. As the largest telescope in space, it is equipped with high-resolution and high-sensitivity instruments, allowing it to view objects too old, distant, or faint for the Hubble Space Telescope. This enables investigations across many fields of astronomy and cosmology, such as observation of the first stars and the formation of the first galaxies, and detailed atmospheric characterization of potentially habitable exoplanets.");
+     scene.add(jamesWebb.mesh);
+
+     root.position.x = 50;
+     root.position.y = 30;
+     root.scale.set(0.5,0.5,0.5);
+     root.rotateZ(-(Math.PI/2));
+
+     // In order to create full bounding box from GLTF scene
+     const box = new THREE.BoxHelper(root, 0xfffff);
+     
+     // Just passing to intersection array without adding bounding box to the scene  
+     objectsToIntersect.push(box);
+     idToInspectableObjectDictionary[box.id] = jamesWebb;
 });
+
+// const objLoader = new OBJLoader();
+// objLoader.load('./assets/james-webb.fbx', (root) => {
+//      // root.position.x = 100;
+//      scene.add(root);
+// });
 
 
 var glassContainer;
@@ -357,12 +372,12 @@ objectsToIntersect.push(earth.mesh);
 objectsToIntersect.push(mars.mesh);
 objectsToIntersect.push(moon.mesh);
 
-meshToInspectableObjectDictionary[sun.mesh.id] = sun;
-meshToInspectableObjectDictionary[mercury.mesh.id] = mercury;
-meshToInspectableObjectDictionary[venus.mesh.id] = venus;
-meshToInspectableObjectDictionary[earth.mesh.id] = earth;
-meshToInspectableObjectDictionary[mars.mesh.id] = mars;
-meshToInspectableObjectDictionary[moon.mesh.id] = moon;
+idToInspectableObjectDictionary[sun.mesh.id] = sun;
+idToInspectableObjectDictionary[mercury.mesh.id] = mercury;
+idToInspectableObjectDictionary[venus.mesh.id] = venus;
+idToInspectableObjectDictionary[earth.mesh.id] = earth;
+idToInspectableObjectDictionary[mars.mesh.id] = mars;
+idToInspectableObjectDictionary[moon.mesh.id] = moon;
 
 
 function animate() {
@@ -392,7 +407,8 @@ function animate() {
      raycaster.setFromCamera(pointer, camera);
      const intersects = raycaster.intersectObjects(objectsToIntersect, false);
      if(intersects.length > 0){
-          pointedCosmicObject = meshToInspectableObjectDictionary[intersects[0].object.id];
+          console.log(intersects[0].object);
+          pointedCosmicObject = idToInspectableObjectDictionary[intersects[0].object.id];
      }
      else{
           pointedCosmicObject = null;
