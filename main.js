@@ -25,6 +25,7 @@ const venusSize = 5;
 const earthSize = 4;
 const moonSize = 1;
 const marsSize = 5; 
+const jamesWebbSize = 0.09;
 
 const mainAsteroidBeltAsteroidsAmount = 1000;
 
@@ -100,7 +101,7 @@ var descriptionText;
 // Sun emmision ambientLight
 // scene.add(new THREE.AmbientLight(0xfce570));
 // scene.add(new THREE.DirectionalLight(0xfce570, 3));
-scene.add(new THREE.PointLight(0xffffff, 15000, 10000000));
+scene.add(new THREE.PointLight(0xffffff, 50000, 10000000));
 
 // renderer.setClearColor(0xffffff);
 renderer.setSize( window.innerWidth, window.innerHeight ); 
@@ -217,11 +218,11 @@ function followTargetObject(){
      let dist = camera.position.distanceTo(targetGlobalPos);
     
      if(shouldMoveCameraToTarget){
-          if(dist > cosmicObjectToInspect.objectRadius+inspectionDistanceOffset){
-               camera.position.lerp(targetGlobalPos, 0.09);
+          // multiplied by 2 in order to not clip through an object
+          if(dist > cosmicObjectToInspect.meshRadius * 1.5){
+               camera.position.lerp(targetGlobalPos, 0.02);
           }
           else{
-               // cosmicObjectToInspect.mesh.add(camera);
                shouldMoveCameraToTarget = false;
           }
           // resetting inspection logic
@@ -272,7 +273,7 @@ venusPivot.add(venus.mesh);
 scene.add(venusPivot);
 
 earthPivot = new THREE.Group();
-earth = new SolarSystemBody(earthPivot, earthSize,new THREE.MeshPhongMaterial({color:0xffffff, map: earthTexture, displacementMap: earthHeightMapTexture, displacementScale: 0.1}), "Earth",
+earth = new SolarSystemBody(earthPivot, earthSize,new THREE.MeshPhongMaterial({color:0xffffff, map: earthTexture, displacementMap: earthHeightMapTexture, displacementScale: 0.05}), "Earth",
 "Earth is the third planet from the Sun and the only astronomical object known to harbor life. This is enabled by Earth being an ocean world, the only one in the Solar System sustaining liquid surface water. Almost all of Earth's water is contained in its global ocean, covering 70.8% of Earth's crust. The remaining 29.2% of Earth's crust is land, most of which is located in the form of continental landmasses within Earth's land hemisphere.");
 earth.mesh.position.x = earthRingRadius;
 earthPivot.add(earth.mesh);
@@ -284,7 +285,7 @@ gltfLoader.load('./assets/james-webb/scene.gltf', (gltf) =>{
      const root = gltf.scene;
      root.updateMatrixWorld();
 
-     jamesWebb = new SolarSystemObject(root, "James Webb Space Telescope", 
+     jamesWebb = new SolarSystemObject(root, jamesWebbSize,"James Webb Space Telescope", 
           "The James Webb Space Telescope (JWST) is a space telescope designed to conduct infrared astronomy. As the largest telescope in space, it is equipped with high-resolution and high-sensitivity instruments, allowing it to view objects too old, distant, or faint for the Hubble Space Telescope. This enables investigations across many fields of astronomy and cosmology, such as observation of the first stars and the formation of the first galaxies, and detailed atmospheric characterization of potentially habitable exoplanets.");
      // scene.add(jamesWebb.mesh);
 
@@ -299,7 +300,7 @@ gltfLoader.load('./assets/james-webb/scene.gltf', (gltf) =>{
 
      root.position.x = earthRingRadius + 15;
      root.position.y = 5;
-     root.scale.set(0.5,0.5,0.5);
+     root.scale.set(jamesWebbSize, jamesWebbSize, jamesWebbSize);
      root.rotateZ(-(Math.PI/2));
 
      
