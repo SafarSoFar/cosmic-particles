@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { clamp, normalize, randFloat, randInt } from 'three/src/math/MathUtils.js';
 
-class InspectableObject{
+class InspectableObject extends THREE.Object3D{
      constructor(mesh, infoName, infoDescription){
+          super();
           this.infoName = infoName;
           this.infoDescription = infoDescription;
           this.mesh = mesh;

@@ -29,10 +29,10 @@ const marsSize = 5;
 const mainAsteroidBeltAsteroidsAmount = 1000;
 
 const mercuryRingRadius = 55;
-const venusRingRadius = 70;
-const earthRingRadius = 80;
-const marsRingRadius = 90;
-const asteroidBeltRingRadius = 105;
+const venusRingRadius = 120;
+const earthRingRadius = 200;
+const marsRingRadius = 280;
+const asteroidBeltRingRadius = 380;
 
 // function randomInt(min, max){
 //      return Math.floor(Math.random() * (max-min+1)+min);
@@ -79,28 +79,7 @@ const marsTexture = textureLoader.load('./assets/mars-texture-2k.jpg');
 marsTexture.colorSpace = THREE.SRGBColorSpace;
 const marsHeightMapTexture = textureLoader.load('./assets/mars-height-map-2k.jpg');
 
-const gltfLoader = new GLTFLoader();
-gltfLoader.load('./assets/james-webb/scene.gltf', (gltf) =>{
 
-     const root = gltf.scene;
-     root.updateMatrixWorld();
-
-     jamesWebb = new SolarSystemObject(root, "James Webb Space Telescope", 
-          "The James Webb Space Telescope (JWST) is a space telescope designed to conduct infrared astronomy. As the largest telescope in space, it is equipped with high-resolution and high-sensitivity instruments, allowing it to view objects too old, distant, or faint for the Hubble Space Telescope. This enables investigations across many fields of astronomy and cosmology, such as observation of the first stars and the formation of the first galaxies, and detailed atmospheric characterization of potentially habitable exoplanets.");
-     scene.add(jamesWebb.mesh);
-
-     root.position.x = 50;
-     root.position.y = 30;
-     root.scale.set(0.5,0.5,0.5);
-     root.rotateZ(-(Math.PI/2));
-
-     // In order to create full bounding box from GLTF scene
-     const box = new THREE.BoxHelper(root, 0xfffff);
-     
-     // Just passing to intersection array without adding bounding box to the scene  
-     objectsToIntersect.push(box);
-     idToInspectableObjectDictionary[box.id] = jamesWebb;
-});
 
 // const objLoader = new OBJLoader();
 // objLoader.load('./assets/james-webb.fbx', (root) => {
@@ -121,7 +100,7 @@ var descriptionText;
 // Sun emmision ambientLight
 // scene.add(new THREE.AmbientLight(0xfce570));
 // scene.add(new THREE.DirectionalLight(0xfce570, 3));
-scene.add(new THREE.PointLight(0xffffff, 10000, 10000));
+scene.add(new THREE.PointLight(0xffffff, 15000, 10000000));
 
 // renderer.setClearColor(0xffffff);
 renderer.setSize( window.innerWidth, window.innerHeight ); 
@@ -162,7 +141,7 @@ let settings = {
 
 let teleport = {
      jamesWebb: function(){
-
+          startInspectingObject(jamesWebb);
      }
 }
 
@@ -297,7 +276,39 @@ earth = new SolarSystemBody(earthPivot, earthSize,new THREE.MeshPhongMaterial({c
 "Earth is the third planet from the Sun and the only astronomical object known to harbor life. This is enabled by Earth being an ocean world, the only one in the Solar System sustaining liquid surface water. Almost all of Earth's water is contained in its global ocean, covering 70.8% of Earth's crust. The remaining 29.2% of Earth's crust is land, most of which is located in the form of continental landmasses within Earth's land hemisphere.");
 earth.mesh.position.x = earthRingRadius;
 earthPivot.add(earth.mesh);
-// Not adding to the scene here, because we have to provide earth as a parent to moon
+scene.add(earthPivot);
+
+const gltfLoader = new GLTFLoader();
+gltfLoader.load('./assets/james-webb/scene.gltf', (gltf) =>{
+
+     const root = gltf.scene;
+     root.updateMatrixWorld();
+
+     jamesWebb = new SolarSystemObject(root, "James Webb Space Telescope", 
+          "The James Webb Space Telescope (JWST) is a space telescope designed to conduct infrared astronomy. As the largest telescope in space, it is equipped with high-resolution and high-sensitivity instruments, allowing it to view objects too old, distant, or faint for the Hubble Space Telescope. This enables investigations across many fields of astronomy and cosmology, such as observation of the first stars and the formation of the first galaxies, and detailed atmospheric characterization of potentially habitable exoplanets.");
+     // scene.add(jamesWebb.mesh);
+
+     earthPivot.add(jamesWebb.mesh);
+
+     // FIXME: Required to click on the box itself, if a click will land on the model it will not count for whatever reason
+
+     // In order to create full bounding box from GLTF scene
+     const box = new THREE.BoxHelper(root, 0xffffff);
+     box.visible = false;
+     jamesWebb.mesh.add(box);
+
+     root.position.x = earthRingRadius + 15;
+     root.position.y = 5;
+     root.scale.set(0.5,0.5,0.5);
+     root.rotateZ(-(Math.PI/2));
+
+     
+     
+     // Just passing to intersection array without adding bounding box to the scene  
+     objectsToIntersect.push(box);
+     idToInspectableObjectDictionary[box.id] = jamesWebb;
+
+});
 
 
 moonPivot = new THREE.Group();
@@ -308,7 +319,6 @@ moonPivot.add(moon.mesh);
 moon.mesh.position.x += 8;
 earth.mesh.add(moonPivot);
 
-scene.add(earthPivot);
 
 
 
@@ -453,12 +463,7 @@ function simulateCosmicMovement(){
 
 
 
-function resetPlayerFollowing(){
-     toggleAutoRotation(false);
-     cosmicObjectToInspect = null;
-     shouldMoveCameraToTarget = false;
-     removeCosmicObjectInfo();
-}
+
 
 function removeCosmicObjectInfo(){
      if(glassContainer){
@@ -470,6 +475,41 @@ function removeCosmicObjectInfo(){
      if(descriptionText){
           descriptionText.remove();
      }
+}
+
+function startInspectingObject(targetObject){
+     whooshAudio.play();
+               
+     cosmicObjectToInspect = targetObject;
+     console.log("Clicked cosmic object:" + cosmicObjectToInspect);
+
+
+     shouldMoveCameraToTarget = true;
+
+     // cleaning from previous info
+     removeCosmicObjectInfo(); 
+     
+     glassContainer = document.createElement('div');
+     glassContainer.className = "glass-container";
+
+     nameText = document.createElement('h1');
+     nameText.innerHTML = cosmicObjectToInspect.infoName;
+     descriptionText = document.createElement('p');
+     descriptionText.innerHTML = cosmicObjectToInspect.infoDescription;
+
+     glassContainer.appendChild(nameText);
+     glassContainer.appendChild(descriptionText);
+
+     document.body.appendChild(glassContainer);
+     
+     toggleAutoRotation(true);
+}
+
+function stopInspectingObject(){
+     toggleAutoRotation(false);
+     cosmicObjectToInspect = null;
+     shouldMoveCameraToTarget = false;
+     removeCosmicObjectInfo();
 }
 
 function setupUserInputEvents(){
@@ -509,36 +549,11 @@ function setupUserInputEvents(){
           }
 
           if(pointedCosmicObject !== null){
-               whooshAudio.play();
-               
-               cosmicObjectToInspect = pointedCosmicObject;
-               console.log("Clicked cosmic object:" + cosmicObjectToInspect);
-
-
-               shouldMoveCameraToTarget = true;
-
-               // cleaning from previous info
-               removeCosmicObjectInfo(); 
-               
-               glassContainer = document.createElement('div');
-               glassContainer.className = "glass-container";
-
-               nameText = document.createElement('h1');
-               nameText.innerHTML = cosmicObjectToInspect.infoName;
-               descriptionText = document.createElement('p');
-               descriptionText.innerHTML = cosmicObjectToInspect.infoDescription;
-
-               glassContainer.appendChild(nameText);
-               glassContainer.appendChild(descriptionText);
-
-               document.body.appendChild(glassContainer);
-               
-               toggleAutoRotation(true);
+              startInspectingObject(pointedCosmicObject); 
           }
           else{
                if(cosmicObjectToInspect){
-                    resetPlayerFollowing();
-                    
+                    stopInspectingObject();
                } 
           }
 
