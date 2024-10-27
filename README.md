@@ -1,4 +1,7 @@
-Example:
+<a href="https://safarsofar.github.io/solar-system/">Link to try</a>
+<br>
+<h2>Example: </h2>
+
 !["Example"](git-assets/planets.gif)
 
 
