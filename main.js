@@ -10,11 +10,11 @@ import {Dot, SolarSystemBody, SolarSystemObject } from './classes.js';
 var objectsToIntersect = [];
 var idToInspectableObjectDictionary = {};
 
-var sunPivot, mercuryPivot, venusPivot, earthPivot, moonPivot, marsPivot, asteroidBeltPivot;
-var sun, mercury, venus, earth, moon, mars;
-var jamesWebb, asteroidBelt;
+var sunPivot, mercuryPivot, venusPivot, earthPivot, moonPivot, marsPivot, asteroidBeltPivot, jupiterPivot, saturnPivot;
+var sun, mercury, venus, earth, moon, mars, jupiter, saturn;
+var jamesWebb, asteroidBelt, apolloLunarModule;
 
-var mercuryRing, venusRing, earthRing, marsRing, asteroidBeltRing; 
+var mercuryRing, venusRing, earthRing, marsRing, asteroidBeltRing, jupiterRing, saturnRing, saturnOrbitRing; 
 
 var cosmicObjectToInspect;
 var pointedCosmicObject;
@@ -26,14 +26,18 @@ const earthSize = 4;
 const moonSize = 1;
 const marsSize = 5; 
 const jamesWebbSize = 0.09;
+const jupiterSize = 12;
+const saturnSize = 10;
 
 const mainAsteroidBeltAsteroidsAmount = 1000;
 
-const mercuryRingRadius = 55;
+const mercuryRingRadius = 70;
 const venusRingRadius = 120;
 const earthRingRadius = 200;
 const marsRingRadius = 280;
-const asteroidBeltRingRadius = 380;
+const asteroidBeltRingRadius = 340;
+const jupiterRingRadius = 380;
+const saturnRingRadius = 430;
 
 // function randomInt(min, max){
 //      return Math.floor(Math.random() * (max-min+1)+min);
@@ -80,6 +84,11 @@ const marsTexture = textureLoader.load('./assets/mars-texture-2k.jpg');
 marsTexture.colorSpace = THREE.SRGBColorSpace;
 const marsHeightMapTexture = textureLoader.load('./assets/mars-height-map-2k.jpg');
 
+const jupiterTexture = textureLoader.load('./assets/jupiter-texture-2k.jpg');
+jupiterTexture.colorSpace = THREE.SRGBColorSpace;
+
+const saturnTexture = textureLoader.load('./assets/saturn-texture.jpg');
+saturnTexture.colorSpace = THREE.SRGBColorSpace;
 
 
 // const objLoader = new OBJLoader();
@@ -99,14 +108,14 @@ var descriptionText;
 
 
 // Sun emmision ambientLight
-// scene.add(new THREE.AmbientLight(0xfce570));
+scene.add(new THREE.AmbientLight(0x000022));
 // scene.add(new THREE.DirectionalLight(0xfce570, 3));
-scene.add(new THREE.PointLight(0xffffff, 50000, 10000000));
+scene.add(new THREE.PointLight(0xffffff, 100000, 10000000));
 
 // renderer.setClearColor(0xffffff);
 renderer.setSize( window.innerWidth, window.innerHeight ); 
 
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 ); 
+const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 10000 ); 
 
 const controls = new OrbitControls(camera, renderer.domElement );
 controls.autoRotateSpeed = 2;
@@ -283,7 +292,7 @@ const gltfLoader = new GLTFLoader();
 gltfLoader.load('./assets/james-webb/scene.gltf', (gltf) =>{
 
      const root = gltf.scene;
-     root.updateMatrixWorld();
+     // root.updateMatrixWorld();
 
      jamesWebb = new SolarSystemObject(root, jamesWebbSize,"James Webb Space Telescope", 
           "The James Webb Space Telescope (JWST) is a space telescope designed to conduct infrared astronomy. As the largest telescope in space, it is equipped with high-resolution and high-sensitivity instruments, allowing it to view objects too old, distant, or faint for the Hubble Space Telescope. This enables investigations across many fields of astronomy and cosmology, such as observation of the first stars and the formation of the first galaxies, and detailed atmospheric characterization of potentially habitable exoplanets.");
@@ -312,6 +321,7 @@ gltfLoader.load('./assets/james-webb/scene.gltf', (gltf) =>{
 });
 
 
+
 moonPivot = new THREE.Group();
 moon = new SolarSystemBody(moonPivot, moonSize, new THREE.MeshPhongMaterial({color:0xffffff, map: moonTexture}), "Moon",
 "The Moon is Earth's only natural satellite. It orbits at an average distance of 384,400 km (238,900 mi), about 30 times the diameter of Earth. Tidal forces between Earth and the Moon have synchronized the Moon's orbital period (lunar month) with its rotation period (lunar day) at 29.5 Earth days, causing the same side of the Moon to always face Earth. The Moon's gravitational pull—and, to a lesser extent, the Sun's—are the main drivers of Earth's tides.");
@@ -320,6 +330,28 @@ moonPivot.add(moon.mesh);
 moon.mesh.position.x += 8;
 earth.mesh.add(moonPivot);
 
+// gltfLoader.load('./assets/apollo-lunar-module.glb', (gltf) => {
+//      const root = gltf.scene;
+
+//      apolloLunarModule = new SolarSystemObject(root, 5, "Apollo Lunar Module",
+//           "Lunar Module"
+//      );
+
+//      moon.mesh.add(root);
+
+//      let moonGlobalPos = new THREE.Vector3();
+//      moon.mesh.getWorldPosition(moonGlobalPos);
+//      root.position.copy(moonGlobalPos);
+     
+     
+//      // FIXME: Required to click on the box itself, if a click will land on the model it will not count for whatever reason
+
+//      // In order to create full bounding box from GLTF scene
+//      // const box = new THREE.BoxHelper(root, 0xffffff);
+//      // box.visible = false;
+//      // apolloLunarModule.mesh.add(box);
+
+// });
 
 
 
@@ -333,17 +365,33 @@ scene.add(marsPivot);
 
 asteroidBeltPivot = new THREE.Group();
 for(let i = 0; i < mainAsteroidBeltAsteroidsAmount; i++){
-     let widthSegments = randInt(3,6);
-     let heightSegments = randInt(3,6);
-     let asteroid = new THREE.Mesh(new THREE.SphereGeometry(0.5,widthSegments, heightSegments), new THREE.MeshPhongMaterial({color: 0x533a34}));
+     let widthSegments = randInt(1,4);
+     let heightSegments = randInt(1,4);
+     let asteroid = new THREE.Mesh(new THREE.SphereGeometry(1.5,widthSegments, heightSegments), new THREE.MeshPhongMaterial({color: 0x533a34}));
      // Degrees 2 Radians
      let angle = randFloat(0,360) * (Math.PI / 180); 
      asteroid.position.x = asteroidBeltRingRadius * Math.cos(angle);
-     asteroid.position.y = randFloat(-1,1);
+     asteroid.position.x += randFloat(-4,4) 
+     asteroid.position.y = randFloat(-4,4);
      asteroid.position.z = asteroidBeltRingRadius * Math.sin(angle);
+     asteroid.position.z += randFloat(-4,4) 
      asteroidBeltPivot.add(asteroid);
 }
 scene.add(asteroidBeltPivot);
+
+jupiterPivot = new THREE.Group();
+jupiter = new SolarSystemBody(jupiterPivot, jupiterSize, new THREE.MeshPhongMaterial({color: 0xffffff, map: jupiterTexture}), "Jupiter",
+"Jupiter is the fifth planet from the Sun and the largest in the Solar System. It is a gas giant with a mass more than 2.5 times that of all the other planets in the Solar System combined and slightly less than one-thousandth the mass of the Sun. Its diameter is eleven times that of Earth, and a tenth that of the Sun. Jupiter orbits the Sun at a distance of 5.20 AU (778.5 Gm), with an orbital period of 11.86 years. It is the third brightest natural object in the Earth's night sky, after the Moon and Venus, and has been observed since prehistoric times. Its name derives from that of Jupiter, the chief deity of ancient Roman religion.");
+jupiter.mesh.position.x = jupiterRingRadius;
+jupiterPivot.add(jupiter.mesh);
+scene.add(jupiterPivot);
+
+saturnPivot = new THREE.Group();
+saturn = new SolarSystemBody(saturnPivot, saturnSize, new THREE.MeshPhongMaterial({color: 0xffffff, map: saturnTexture}), "Saturn",
+"Saturn is the sixth planet from the Sun and the second largest in the Solar System, after Jupiter. It is a gas giant, with an average radius of about nine times that of Earth. It has an eighth the average density of Earth, but is over 95 times more massive. Even though Saturn is almost as big as Jupiter, Saturn has less than a third the mass of Jupiter. Saturn orbits the Sun at a distance of 9.59 AU (1,434 million km), with an orbital period of 29.45 years.");
+saturn.mesh.position.x = saturnRingRadius;
+saturnPivot.add(saturn.mesh);
+scene.add(saturnPivot);
 
 
 // Ring creation is not automated because radiuses of the rings are individual
@@ -374,7 +422,15 @@ asteroidBeltRing =  new THREE.Mesh(asteroidBeltRingGeo, ringMat);
 asteroidBeltRing.rotateX(Math.PI / 2);
 scene.add(asteroidBeltRing);
 
+let jupiterRingGeo = new THREE.TorusGeometry(jupiterRingRadius, 0.2,128,128);
+jupiterRing = new THREE.Mesh(jupiterRingGeo, ringMat);
+jupiterRing.rotateX(Math.PI / 2);
+scene.add(jupiterRing);
 
+let saturnRingGeo = new THREE.TorusGeometry(saturnRingRadius, 0.2,128,128);
+saturnRing = new THREE.Mesh(saturnRingGeo, ringMat);
+saturnRing.rotateX(Math.PI / 2);
+scene.add(saturnRing);
 
 objectsToIntersect.push(sun.mesh);
 objectsToIntersect.push(mercury.mesh);
@@ -382,6 +438,8 @@ objectsToIntersect.push(venus.mesh);
 objectsToIntersect.push(earth.mesh);
 objectsToIntersect.push(mars.mesh);
 objectsToIntersect.push(moon.mesh);
+objectsToIntersect.push(jupiter.mesh);
+objectsToIntersect.push(saturn.mesh);
 
 idToInspectableObjectDictionary[sun.mesh.id] = sun;
 idToInspectableObjectDictionary[mercury.mesh.id] = mercury;
@@ -389,6 +447,8 @@ idToInspectableObjectDictionary[venus.mesh.id] = venus;
 idToInspectableObjectDictionary[earth.mesh.id] = earth;
 idToInspectableObjectDictionary[mars.mesh.id] = mars;
 idToInspectableObjectDictionary[moon.mesh.id] = moon;
+idToInspectableObjectDictionary[jupiter.mesh.id] = jupiter;
+idToInspectableObjectDictionary[saturn.mesh.id] = saturn;
 
 
 function animate() {
@@ -455,11 +515,19 @@ function simulateCosmicMovement(){
 
      moonPivot.rotation.y += 0.015;
 
-     asteroidBeltPivot.rotation.y += 0.00010;
-
      marsPivot.rotation.y += 0.0005;
      mars.mesh.rotation.y -= 0.003;
      mars.mesh.rotation.x -= 0.0003;
+
+     asteroidBeltPivot.rotation.y += 0.00010;
+
+     jupiterPivot.rotation.y += 0.0001;
+     jupiter.mesh.rotation.y -= 0.001;
+     jupiter.mesh.rotation.x -= 0.0001;
+
+     saturnPivot.rotation.y += 0.00007;
+     saturn.mesh.rotation.y -= 0.0007;
+     saturn.mesh.rotation.x -= 0.00007;
 }
 
 
