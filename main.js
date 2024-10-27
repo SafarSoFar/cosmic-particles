@@ -39,9 +39,10 @@ const asteroidBeltRingRadius = 340;
 const jupiterRingRadius = 380;
 const saturnRingRadius = 430;
 
-// function randomInt(min, max){
-//      return Math.floor(Math.random() * (max-min+1)+min);
-// }
+// Ring creation is not automated because radiuses of the rings are individual
+const ringMat = new THREE.LineBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.01});
+
+
 
 let inspectionDistanceOffset = 15;
 
@@ -391,11 +392,19 @@ saturn = new SolarSystemBody(saturnPivot, saturnSize, new THREE.MeshPhongMateria
 "Saturn is the sixth planet from the Sun and the second largest in the Solar System, after Jupiter. It is a gas giant, with an average radius of about nine times that of Earth. It has an eighth the average density of Earth, but is over 95 times more massive. Even though Saturn is almost as big as Jupiter, Saturn has less than a third the mass of Jupiter. Saturn orbits the Sun at a distance of 9.59 AU (1,434 million km), with an orbital period of 29.45 years.");
 saturn.mesh.position.x = saturnRingRadius;
 saturnPivot.add(saturn.mesh);
+
+let saturnOrbitRingGeo = new THREE.TorusGeometry(saturnSize+5, 4, 2,64);
+saturnOrbitRing = new THREE.Mesh(saturnOrbitRingGeo, ringMat);
+{
+     let saturnGlobalPos = new THREE.Vector3();
+     saturn.getWorldPosition(saturnGlobalPos);
+     saturnOrbitRing.position.copy(saturn.mesh.position);
+}
+saturnOrbitRing.rotateX(Math.PI / 1.5);
+saturnPivot.add(saturnOrbitRing);
 scene.add(saturnPivot);
 
 
-// Ring creation is not automated because radiuses of the rings are individual
-const ringMat = new THREE.LineBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.01});
 
 let mercuryRingGeo = new THREE.TorusGeometry(mercuryRingRadius, 0.2, 128, 128);
 mercuryRing =  new THREE.Mesh(mercuryRingGeo, ringMat);
@@ -431,6 +440,9 @@ let saturnRingGeo = new THREE.TorusGeometry(saturnRingRadius, 0.2,128,128);
 saturnRing = new THREE.Mesh(saturnRingGeo, ringMat);
 saturnRing.rotateX(Math.PI / 2);
 scene.add(saturnRing);
+
+
+
 
 objectsToIntersect.push(sun.mesh);
 objectsToIntersect.push(mercury.mesh);
