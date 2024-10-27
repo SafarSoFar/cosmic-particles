@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {sunVertexShader, sunFragmentShader} from './shaders.js';
 import {GLTFLoader,OBJLoader, OrbitControls, UnrealBloomPass } from 'three/examples/jsm/Addons.js';
 import { clamp, normalize, randFloat, randInt } from 'three/src/math/MathUtils.js';
 import {GUI} from 'lil-gui';
@@ -55,40 +56,40 @@ let audioLoader = new THREE.AudioLoader();
 let backgroundAudio = new THREE.Audio(audioListener);
 
 // FIXME: background audio doesn't play if player interacted with the page while the page is still loading
-audioLoader.load("./assets/meditative.mp3", function(buffer){
+audioLoader.load("./assets/audio/meditative.mp3", function(buffer){
      backgroundAudio.setBuffer(buffer);
      backgroundAudio.setVolume(1.0);
      backgroundAudio.setLoop(true);
 });
 
 let whooshAudio = new THREE.Audio(audioListener);
-audioLoader.load("./assets/whoosh.mp3", function(buffer){
+audioLoader.load("./assets/audio/whoosh.mp3", function(buffer){
      whooshAudio.setBuffer(buffer);
 });
 
 const textureLoader = new THREE.TextureLoader();
 
-const earthTexture = textureLoader.load('./assets/earth-texture-2k.jpg');
+const earthTexture = textureLoader.load('./assets/textures/earth-texture-2k.jpg');
 earthTexture.colorSpace = THREE.SRGBColorSpace;
-const earthHeightMapTexture = textureLoader.load('./assets/earth-height-map-2k.jpg');
+const earthHeightMapTexture = textureLoader.load('./assets/textures/earth-height-map-2k.jpg');
 
-const moonTexture = textureLoader.load('./assets/moon-texture-2k.jpg');
+const moonTexture = textureLoader.load('./assets/textures/moon-texture-2k.jpg');
 moonTexture.colorSpace = THREE.SRGBColorSpace;
 
-const mercuryTexture = textureLoader.load('./assets/mercury-texture.jpg');
+const mercuryTexture = textureLoader.load('./assets/textures/mercury-texture.jpg');
 mercuryTexture.colorSpace = THREE.SRGBColorSpace;
 
-const venusTexture = textureLoader.load('./assets/venus-texture.jpg');
+const venusTexture = textureLoader.load('./assets/textures/venus-texture.jpg');
 venusTexture.colorSpace = THREE.SRGBColorSpace;
 
-const marsTexture = textureLoader.load('./assets/mars-texture-2k.jpg');
+const marsTexture = textureLoader.load('./assets/textures/mars-texture-2k.jpg');
 marsTexture.colorSpace = THREE.SRGBColorSpace;
-const marsHeightMapTexture = textureLoader.load('./assets/mars-height-map-2k.jpg');
+const marsHeightMapTexture = textureLoader.load('./assets/textures/mars-height-map-2k.jpg');
 
-const jupiterTexture = textureLoader.load('./assets/jupiter-texture-2k.jpg');
+const jupiterTexture = textureLoader.load('./assets/textures/jupiter-texture-2k.jpg');
 jupiterTexture.colorSpace = THREE.SRGBColorSpace;
 
-const saturnTexture = textureLoader.load('./assets/saturn-texture.jpg');
+const saturnTexture = textureLoader.load('./assets/textures/saturn-texture.jpg');
 saturnTexture.colorSpace = THREE.SRGBColorSpace;
 
 
@@ -259,9 +260,23 @@ camera.position.z = 300;
 
 // Separate planet pivot is required in order to rotate them with different speed.
 
+var sunShaderMat = new THREE.ShaderMaterial({
+     vertexShader: sunVertexShader(),
+     fragmentShader: sunFragmentShader(),
+     uniforms: {
+          counter: {type: 'float', value: 0},
+     },
+
+})
 
 sunPivot = new THREE.Group();
-sun = new SolarSystemBody(sunPivot,sunSize, new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 2.0}), "Sun", 
+sun = new SolarSystemBody(sunPivot,sunSize, 
+     // new THREE.MeshPhongMaterial(
+     //      {color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 2.0
+
+     //      }),
+     sunShaderMat, 
+     "Sun", 
 "The Sun is the star at the center of the Solar System. It is a massive, nearly perfect sphere of hot plasma, heated to incandescence by nuclear fusion reactions in its core, radiating the energy from its surface mainly as visible light and infrared radiation with 10% at ultraviolet energies");
 // const sun = new THREE.Mesh(new THREE.SphereGeometry(30), new THREE.MeshPhongMaterial({color: 0xfce570, emissive: 0xfce570, emissiveIntensity: 3}));
 sunPivot.add(sun.mesh);
@@ -462,9 +477,10 @@ idToInspectableObjectDictionary[moon.mesh.id] = moon;
 idToInspectableObjectDictionary[jupiter.mesh.id] = jupiter;
 idToInspectableObjectDictionary[saturn.mesh.id] = saturn;
 
-
+let counter = 0;
 function animate() {
-     
+     counter += 0.006;
+     sun.mesh.material.uniforms.counter.value = counter;
 
      controls.update();
      // for(let i = 0; i < settings.dotsAmount; i++){
